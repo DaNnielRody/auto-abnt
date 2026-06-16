@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>auto-ABNT — formate seu trabalho em ABNT</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <main class="container">
+      <header>
+        <h1>auto-ABNT</h1>
+        <p class="sub">
+          Suba seu <strong>.docx</strong>, preencha os dados da capa e baixe o
+          esqueleto já formatado em ABNT (LaTeX/abnTeX2). Tudo acontece no seu
+          navegador — nada é enviado ou guardado.
+        </p>
+      </header>
+
+      <form id="form">
+        <fieldset>
+          <legend>1. Dados da capa e folha de rosto</legend>
+          <div class="grid">
+            <label>Título do trabalho
+              <input name="titulo" required placeholder="Ex: A influência de..." />
+            </label>
+            <label>Seu nome
+              <input name="autor" required placeholder="Nome completo" />
+            </label>
+            <label>Instituição
+              <input name="instituicao" placeholder="Ex: Universidade Federal de..." />
+            </label>
+            <label>Curso
+              <input name="curso" placeholder="Ex: Pedagogia" />
+            </label>
+            <label>Orientador(a)
+              <input name="orientador" placeholder="Prof. Dr. ..." />
+            </label>
+            <label>Cidade
+              <input name="cidade" placeholder="Ex: São Paulo" />
+            </label>
+            <label>Ano
+              <input name="ano" placeholder="Ex: 2026" inputmode="numeric" />
+            </label>
+          </div>
+          <label class="full">Resumo (opcional)
+            <textarea name="resumo" rows="3" placeholder="Cole aqui o resumo do trabalho"></textarea>
+          </label>
+          <label class="full">Palavras-chave (opcional, separadas por ; )
+            <input name="palavrasChave" placeholder="educação; tecnologia; aprendizagem" />
+          </label>
+          <label class="full">Abstract — resumo em inglês (opcional)
+            <textarea name="abstract" rows="3" placeholder="English version of the resumo"></textarea>
+          </label>
+          <label class="full">Keywords (opcional, separadas por ; )
+            <input name="keywords" placeholder="education; technology; learning" />
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend>2. O corpo do trabalho</legend>
+          <label class="file">Arquivo .docx (o Word original)
+            <input type="file" id="docx" name="docx" accept=".docx" required />
+          </label>
+        </fieldset>
+
+        <button type="submit" class="primary">Gerar arquivo ABNT</button>
+        <p id="status" class="status"></p>
+      </form>
+
+      <section id="resultado" class="resultado" hidden>
+        <h2>Quase lá — faltam 2 passos</h2>
+        <ol>
+          <li>
+            <strong>Refinar com uma IA:</strong> o arquivo baixado é um rascunho.
+            Clique em uma IA abaixo — ela abre já com o prompt + o .tex prontos
+            pra acertar títulos, referências (NBR 6023) e citações (NBR 10520).
+            <div class="ai-launch-group">
+              <button id="abrir-chatgpt" class="ai-launch" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M12 2a10 10 0 100 20 10 10 0 000-20zM2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20" />
+                </svg>
+                Abrir no ChatGPT
+              </button>
+              <button id="abrir-claude" class="ai-launch" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M5 19l7-14 7 14M8 14h8" />
+                </svg>
+                Abrir no Claude
+              </button>
+            </div>
+            <div class="prompt-panel">
+              <button id="copiar-prompt" class="copy-button" type="button">
+                Copiar
+              </button>
+              <textarea
+                id="prompt"
+                rows="6"
+                readonly
+                placeholder="O prompt + .tex aparecem aqui ao gerar o arquivo…"
+              ></textarea>
+            </div>
+          </li>
+          <li>
+            <strong>Compilar no Overleaf:</strong> cole o .tex final que a IA
+            devolveu, recompile e baixe o PDF.
+            <div class="ai-launch-group">
+              <a
+                class="ai-launch btn-secondary"
+                href="https://www.overleaf.com/project"
+                target="_blank"
+                rel="noopener"
+                >Abrir o Overleaf</a
+              >
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <footer>
+        <p>Entrada: .docx · Saída: LaTeX abnTeX2 · 100% no navegador, sem servidor.</p>
+      </footer>
+    </main>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

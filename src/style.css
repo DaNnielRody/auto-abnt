@@ -1,0 +1,469 @@
+/* auto-ABNT — implements docs/DESIGN.md. Every value is a token below. */
+
+:root {
+  /* Colors — Brand & Accent */
+  --colors-ink: #0a0a0a;
+  --colors-ink-hover: #262626;
+  --colors-signal: #16a34a;
+  --colors-signal-bright: #4ade80;
+
+  /* Colors — Surface */
+  --colors-surface: #ffffff;
+  --colors-surface-raised: #f5f5f5;
+  --colors-panel: #0a0a0a;
+  --colors-panel-raised: #171717;
+
+  /* Colors — Text */
+  --colors-text-primary: #171717;
+  --colors-text-secondary: #525252;
+  --colors-text-tertiary: #a3a3a3;
+  --colors-text-on-dark: #fafafa;
+  --colors-text-on-dark-muted: #a3a3a3;
+  --colors-text-on-ink: #ffffff;
+
+  /* Colors — Border */
+  --colors-border: #e5e5e5;
+  --colors-border-dark: #262626;
+
+  /* Colors — Semantic */
+  --colors-success: #16a34a;
+  --colors-success-tint: #f0fdf4;
+  --colors-warning: #d97706;
+  --colors-warning-tint: #fffbeb;
+  --colors-error: #dc2626;
+  --colors-error-tint: #fef2f2;
+
+  /* Typography */
+  --font-display: "Nunito Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-body: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji";
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+
+  /* Spacing — base 4px */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  --spacing-3xl: 64px;
+
+  /* Shapes */
+  --rounded-full: 9999px;
+  --rounded-card: 16px;
+
+  /* Focus */
+  --focus-ring: 2px solid var(--colors-signal);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background: var(--colors-surface);
+  color: var(--colors-text-primary);
+  line-height: 1.6;
+  font-size: 16px; /* typography.body-md */
+}
+
+/* Single centered reading column — 768px (Layout §4) */
+.container {
+  max-width: 768px;
+  margin: 0 auto;
+  padding: var(--spacing-2xl) var(--spacing-lg) var(--spacing-3xl);
+}
+
+*:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* ===== component.header ===== */
+header {
+  margin-bottom: var(--spacing-2xl);
+}
+
+header h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 44px; /* typography.display */
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--colors-text-primary);
+}
+
+.sub {
+  margin: var(--spacing-md) 0 0;
+  font-size: 18px; /* typography.body-lg */
+  color: var(--colors-text-secondary);
+  max-width: 52ch;
+}
+
+/* ===== component.fieldset ===== */
+fieldset {
+  border: 1px solid var(--colors-border);
+  border-radius: var(--rounded-card);
+  background: var(--colors-surface);
+  padding: var(--spacing-xl);
+  margin: 0 0 var(--spacing-2xl);
+}
+
+/* ===== component.fieldset-legend ===== */
+legend {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 20px; /* typography.h3 */
+  line-height: 1.3;
+  color: var(--colors-text-primary);
+  padding: 0;
+  margin-bottom: var(--spacing-lg);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+}
+
+/* ===== component.field-label ===== */
+label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  font-size: 14px; /* typography.body-sm */
+  font-weight: 500;
+  color: var(--colors-text-primary);
+}
+
+label.full {
+  grid-column: 1 / -1;
+  margin-top: var(--spacing-md);
+}
+
+/* ===== component.text-input / component.textarea ===== */
+input[type="text"],
+input:not([type]),
+input[name],
+textarea {
+  font-family: var(--font-body);
+  font-size: 16px; /* typography.body-md */
+  font-weight: 400;
+  color: var(--colors-text-primary);
+  background: var(--colors-surface);
+  border: 1px solid var(--colors-border);
+  height: 44px;
+  padding: 0 var(--spacing-md);
+  border-radius: var(--rounded-full);
+}
+
+textarea {
+  height: auto;
+  min-height: 96px;
+  padding: var(--spacing-md);
+  border-radius: var(--rounded-card); /* textarea uses card radius */
+  line-height: 1.6;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--colors-text-tertiary);
+}
+
+/* component.text-input-focused */
+input:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--colors-ink);
+  box-shadow: 0 0 0 2px var(--colors-surface), 0 0 0 4px var(--colors-signal);
+}
+
+/* ===== component.file-drop ===== */
+label.file {
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--spacing-md);
+  min-height: 96px;
+  padding: var(--spacing-xl);
+  background: var(--colors-surface-raised);
+  border: 1px dashed var(--colors-border);
+  border-radius: var(--rounded-card);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--colors-text-secondary);
+}
+
+label.file input[type="file"] {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--colors-text-primary);
+  border: none;
+  background: transparent;
+  height: auto;
+  padding: 0;
+}
+
+/* ===== Buttons ===== */
+button {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  height: 36px; /* button-ghost default */
+  padding: 0 var(--spacing-md);
+  border: none;
+  background: transparent;
+  color: var(--colors-text-secondary);
+  border-radius: var(--rounded-full);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+button:hover {
+  background: var(--colors-surface-raised);
+  color: var(--colors-text-primary);
+}
+
+/* component.button-primary — the sole primary, black pill */
+button.primary {
+  width: 100%;
+  height: 44px;
+  padding: 0 var(--spacing-lg);
+  background: var(--colors-ink);
+  color: var(--colors-text-on-ink);
+  font-size: 16px;
+}
+
+button.primary:hover {
+  background: var(--colors-ink-hover);
+  color: var(--colors-text-on-ink);
+}
+
+button.primary:disabled {
+  background: var(--colors-surface-raised);
+  color: var(--colors-text-tertiary);
+  cursor: not-allowed;
+}
+
+/* component.button-secondary + component.ai-launch-button */
+.btn-secondary,
+.ai-launch {
+  height: 44px;
+  padding: 0 var(--spacing-lg);
+  font-size: 16px;
+  background: var(--colors-surface);
+  color: var(--colors-text-primary);
+  border: 1px solid var(--colors-border);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+}
+
+.btn-secondary:hover,
+.ai-launch:hover {
+  background: var(--colors-surface-raised);
+  color: var(--colors-text-primary);
+}
+
+.ai-launch svg {
+  width: 16px;
+  height: 16px;
+  color: var(--colors-text-secondary);
+}
+
+/* ===== component.ai-launch-group ===== */
+.ai-launch-group {
+  display: flex;
+  gap: var(--spacing-md);
+  margin: var(--spacing-md) 0;
+}
+
+.ai-launch-group .ai-launch {
+  flex: 1;
+}
+
+/* ===== component.status-message ===== */
+.status {
+  display: inline-block;
+  margin: var(--spacing-md) 0 0;
+  font-size: 14px;
+  font-weight: 500;
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--rounded-full);
+}
+
+.status:empty {
+  display: none;
+}
+
+.status.info {
+  color: var(--colors-text-secondary);
+  background: var(--colors-surface-raised);
+}
+
+.status.ok {
+  color: var(--colors-success);
+  background: var(--colors-success-tint);
+}
+
+.status.erro {
+  color: var(--colors-error);
+  background: var(--colors-error-tint);
+}
+
+/* ===== component.result-card ===== */
+.resultado {
+  margin-top: var(--spacing-2xl);
+  background: var(--colors-surface);
+  border: 1px solid var(--colors-border);
+  border-radius: var(--rounded-card);
+  padding: var(--spacing-xl);
+}
+
+.resultado h2 {
+  margin: 0 0 var(--spacing-lg);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 28px; /* typography.h2 */
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+/* ===== component.step-item ===== */
+.resultado ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: step;
+}
+
+.resultado li {
+  position: relative;
+  counter-increment: step;
+  padding-left: calc(28px + var(--spacing-md));
+  margin-bottom: var(--spacing-lg);
+  font-size: 16px;
+  color: var(--colors-text-secondary);
+}
+
+.resultado li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--colors-text-primary);
+  background: var(--colors-surface-raised);
+  border-radius: var(--rounded-full);
+}
+
+.resultado li strong {
+  color: var(--colors-text-primary);
+}
+
+/* ===== component.prompt-panel (signature — the one inversion) ===== */
+.prompt-panel {
+  position: relative;
+  margin: var(--spacing-md) 0;
+  background: var(--colors-panel);
+  border: 1px solid var(--colors-border-dark);
+  border-top: 2px solid var(--colors-signal-bright); /* prompt-panel-ready */
+  border-radius: var(--rounded-card);
+  padding: var(--spacing-lg);
+}
+
+.prompt-panel .copy-button {
+  position: absolute;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  color: var(--colors-text-on-dark-muted);
+  background: transparent;
+}
+
+.prompt-panel .copy-button:hover {
+  color: var(--colors-text-on-dark);
+  background: var(--colors-panel-raised);
+}
+
+.prompt-panel .copy-button.copied {
+  color: var(--colors-signal-bright);
+}
+
+#prompt {
+  width: 100%;
+  max-height: 320px;
+  resize: vertical;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 14px; /* typography.code */
+  line-height: 1.6;
+  color: var(--colors-text-on-dark);
+}
+
+#prompt:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+#prompt::placeholder {
+  color: var(--colors-text-on-dark-muted);
+}
+
+/* ===== component.footer ===== */
+footer {
+  margin-top: var(--spacing-3xl);
+  padding-top: var(--spacing-3xl);
+  border-top: 1px solid var(--colors-border);
+  text-align: center;
+}
+
+footer p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--colors-text-secondary);
+}
+
+a {
+  color: var(--colors-text-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ===== Responsive (§9) ===== */
+@media (max-width: 640px) {
+  header h1 {
+    font-size: 36px;
+  }
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .ai-launch-group {
+    flex-direction: column;
+  }
+  fieldset,
+  .resultado {
+    padding: var(--spacing-lg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}

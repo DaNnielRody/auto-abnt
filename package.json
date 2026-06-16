@@ -1,0 +1,22 @@
+{
+  "name": "auto-abnt",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Converte um .docx no esqueleto LaTeX abnTeX2 (ABNT), 100% no navegador.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node test-smoke.mjs"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "mammoth": "^1.8.0"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.0",
+    "playwright": "^1.61.0",
+    "vite": "^6.0.0"
+  }
+}
