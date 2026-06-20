@@ -25,9 +25,7 @@ import { FakePaymentGateway } from '../infrastructure/adapters/FakePaymentGatewa
 import { createClaudeFormatter } from '../infrastructure/adapters/ClaudeFormatter.js';
 import { createOpenAiFormatter } from '../infrastructure/adapters/OpenAiFormatter.js';
 import { createTexLiveCompiler, createLatexmkRunner } from '../infrastructure/adapters/TexLiveCompiler.js';
-
-// Later slices swap the remaining fakes for real adapters (this file is the ONLY change site):
-//   import { StripeGateway }   from '../infrastructure/adapters/StripeGateway.js';
+import { createStripeGateway } from '../infrastructure/adapters/StripeGateway.js';
 
 /**
  * @typedef {Object} App
@@ -57,6 +55,14 @@ import { createTexLiveCompiler, createLatexmkRunner } from '../infrastructure/ad
  * LatexCompiler selection (env, see selectLatexCompiler):
  *   COMPILER=texlive → real TexLiveCompiler (TeX Live + abntex2 via latexmk runner)
  *   COMPILER=fake | (unset) → FakeLatexCompiler (sandbox/local default; NO binary)
+ *
+ * PaymentGateway selection (env, see selectPaymentGateway):
+ *   PAYMENT_PROVIDER=stripe + STRIPE_API_KEY → real StripeGateway (Checkout Sessions;
+ *     injected fetch, NO Stripe SDK). Price from PRICE_BRL (centavos, BRL); redirect
+ *     URLs from CHECKOUT_SUCCESS_URL / CHECKOUT_CANCEL_URL.
+ *   PAYMENT_PROVIDER=fake | (no key present) → FakePaymentGateway (keyless sandbox/local
+ *     default; NO network). FAKE_AUTOPAY=1 marks charges paid immediately.
+ * Keys are read here only and injected into the adapter; never hardcoded, never logged.
  */
 export function buildApp(env = (typeof process !== 'undefined' ? process.env : {})) {
   // Price config lives here, not in callers. e.g. PRICE_BRL=990 (centavos).
@@ -69,9 +75,7 @@ export function buildApp(env = (typeof process !== 'undefined' ? process.env : {
   // green WITHOUT keys (no real vendor call). Other adapters stay fake for now.
   const llmFormatter = selectLlmFormatter(env);
   const latexCompiler = selectLatexCompiler(env);
-  const paymentGateway = new FakePaymentGateway({
-    autoPay: env.FAKE_AUTOPAY === '1' || env.FAKE_AUTOPAY === 'true',
-  });
+  const paymentGateway = selectPaymentGateway(env, pricing);
 
   const formatThesis = new FormatThesisUseCase({
     llmFormatter,
@@ -100,6 +104,25 @@ export function buildApp(env = (typeof process !== 'undefined' ? process.env : {
 }
 
 /**
+ * Normalize an env provider flag to a lowercase string ('' when unset).
+ * Shared by the three env selectors; pure, no behavior change.
+ * @param {unknown} value
+ * @returns {string}
+ */
+function normalizeProvider(value) {
+  return String(value ?? '').toLowerCase();
+}
+
+/**
+ * The global `fetch` injected into real adapters, or undefined where absent.
+ * Adapters import no network themselves; the seam injects it here.
+ * @returns {typeof fetch | undefined}
+ */
+function resolveFetch() {
+  return typeof fetch !== 'undefined' ? fetch : undefined;
+}
+
+/**
  * Pick the LlmFormatter adapter from env. The ONLY place that reads vendor keys.
  *
  * Default is FAKE when no usable provider+key is present, so the sandbox/local
@@ -111,8 +134,8 @@ export function buildApp(env = (typeof process !== 'undefined' ? process.env : {
  * @returns {import('../application/ports/LlmFormatter.js').LlmFormatter}
  */
 function selectLlmFormatter(env) {
-  const provider = String(env.LLM_PROVIDER ?? '').toLowerCase();
-  const fetchFn = typeof fetch !== 'undefined' ? fetch : undefined;
+  const provider = normalizeProvider(env.LLM_PROVIDER);
+  const fetchFn = resolveFetch();
 
   if (provider === 'claude' && env.ANTHROPIC_API_KEY) {
     return createClaudeFormatter({
@@ -144,10 +167,42 @@ function selectLlmFormatter(env) {
  * @returns {import('../application/ports/LatexCompiler.js').LatexCompiler}
  */
 function selectLatexCompiler(env) {
-  const compiler = String(env.COMPILER ?? '').toLowerCase();
+  const compiler = normalizeProvider(env.COMPILER);
   if (compiler === 'texlive') {
     return createTexLiveCompiler({ run: createLatexmkRunner() });
   }
   // Unset / COMPILER=fake → fake (no external process).
   return new FakeLatexCompiler();
+}
+
+/**
+ * Pick the PaymentGateway adapter from env. The ONLY place that reads the Stripe key.
+ *
+ * Default is FAKE (keyless) so the sandbox/local gate stays green WITHOUT a real key
+ * and never hits Stripe. PAYMENT_PROVIDER=stripe + STRIPE_API_KEY selects the real
+ * Checkout-Sessions adapter; the global `fetch` is injected as fetchFn (the adapter
+ * imports no SDK and does no direct network). The price is server-authoritative
+ * (PRICE_BRL centavos, brl) — client-supplied amount/currency is ignored by the adapter.
+ *
+ * @param {Object} env
+ * @param {{ amount:number, currency:string }} pricing  Price config from buildApp (env-derived).
+ * @returns {import('../application/ports/PaymentGateway.js').PaymentGateway}
+ */
+function selectPaymentGateway(env, pricing) {
+  const provider = normalizeProvider(env.PAYMENT_PROVIDER);
+  const fetchFn = resolveFetch();
+
+  if (provider === 'stripe' && env.STRIPE_API_KEY) {
+    return createStripeGateway({
+      fetchFn,
+      apiKey: env.STRIPE_API_KEY,
+      pricing: { amount: Number(env.PRICE_BRL ?? pricing.amount ?? 990), currency: 'brl' },
+      successUrl: env.CHECKOUT_SUCCESS_URL,
+      cancelUrl: env.CHECKOUT_CANCEL_URL,
+    });
+  }
+  // No provider / no key / PAYMENT_PROVIDER=fake → fake (keyless, no network).
+  return new FakePaymentGateway({
+    autoPay: env.FAKE_AUTOPAY === '1' || env.FAKE_AUTOPAY === 'true',
+  });
 }
