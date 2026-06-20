@@ -185,7 +185,7 @@ Hover policy: hover states exist and are documented per component as `-hover` en
 
 **`{component.button-primary-disabled}`** — background `{colors.surface-raised}`, text `{colors.text-tertiary}`, cursor not-allowed (while converting).
 
-**`{component.button-secondary}`** — "Compilar no Overleaf" (external link styled as button)
+**`{component.button-secondary}`** — neutral secondary pill (e.g. "Baixar .tex" in `{component.download-bar}`)
 - Background `{colors.surface}` · Text `{colors.text-primary}` `{typography.body-md}` weight 500 · Border 1px `{colors.border}` · Radius `{rounded.full}` · Height 44px · Padding 0 `{spacing.lg}`
 
 **`{component.button-secondary-hover}`** — background `{colors.surface-raised}`.
@@ -246,10 +246,31 @@ Hover policy: hover states exist and are documented per component as `-hover` en
 
 **`{component.prompt-panel-ready}`** — when freshly populated after a successful conversion: a 2px top edge in `{colors.signal-bright}` signaling "draft ready".
 
+**`{component.pdf-preview}`** — the compiled ABNT PDF rendered inline, occupying `{component.prompt-panel}` post-pivot (replaces the LaTeX/handoff payload; resolves §11 "in-page document preview" gap)
+- Lives inside `{component.prompt-panel}` (the one Level-2 inversion): the dark panel becomes the *frame* for the rendered page. Panel keeps Background `{colors.panel}` · Border 1px `{colors.border-dark}` · Radius `{rounded.card}` · Padding `{spacing.md}`.
+- Embed: native `<iframe>`/`<embed>` of a blob URL (a real PDF the backend returns). pdf.js only if native is impossible — no new dep by default.
+- Embed element: width 100% · aspect-ratio of an A4 page (height ≥ 480px desktop, scroll inside) · Background `{colors.surface}` (the white page reads correctly against the dark frame) · Border none (the panel hairline frames it) · Radius `{rounded.card}` (inner clip matches the frame) · the embed itself is the only white rectangle allowed on a dark surface, justified because it *is* the document.
+- Panel header row above the embed: left a `{component.badge}` "Pré-visualização" `{colors.text-on-dark-muted}`; the `{colors.signal-bright}` 2px top edge from `{component.prompt-panel-ready}` fires when the PDF first loads (= ready/done signal). Green stays a signal, never a control.
+- Empty/pre-generate: panel shows `{typography.code}` `{colors.text-on-dark-muted}` placeholder line ("A pré-visualização do PDF aparece aqui depois de gerar."); no embed mounted.
+- Responsive: keeps `{rounded.card}` and scrolls internally; never shrinks the PDF below legibility — scroll, don't scale (mirrors prompt-panel rule §9).
+
+**`{component.download-bar}`** — the download affordance row, shown only in the `pronto` state, directly below `{component.pdf-preview}` inside `{component.result-card}`
+- Layout: horizontal row, gap `{spacing.md}`, stacking 1-up below `sm` (both full-width), margin-top `{spacing.lg}`.
+- Primary: `{component.button-primary}` "Baixar PDF" — the new single primary action of the result area (black pill; green is never the CTA).
+- Optional secondary: `{component.button-secondary}` "Baixar .tex" — equal height, neutral pill, for users who want the source. Omit if only PDF is offered.
+- Hidden until state = `pronto`; never shown during convertendo/formatando/compilando/erro.
+
 ### Inline & Status
 
 **`{component.status-message}`** — conversion progress / outcome (the `#status` line)
 - `{typography.body-sm}` weight 500 · Radius `{rounded.full}` · Padding `{spacing.xs}` `{spacing.md}` · Variants: `-info` text `{colors.text-secondary}` on `{colors.surface-raised}` ("Convertendo…"); `-ok` text `{colors.success}` on `{colors.success-tint}` ("Pronto! Baixamos o arquivo .tex."); `-erro` text `{colors.error}` on `{colors.error-tint}` ("Selecione um arquivo .docx primeiro.")
+- **Post-pivot state flow** (server compile, no Overleaf). Five states map to the existing variants — no new tokens:
+  - `convertendo` → `-info` · "Convertendo o .docx no seu navegador…"
+  - `formatando` → `-info` · "Formatando em ABNT…"
+  - `compilando` → `-info` · "Compilando o PDF…"
+  - `pronto` → `-ok` (`{colors.success}` on `{colors.success-tint}`) · "Pronto! Seu PDF está pronto para baixar." (this is the green = ready/done moment; pairs with `{component.prompt-panel-ready}`'s `{colors.signal-bright}` top edge)
+  - `erro` → `-erro` (`{colors.error}` on `{colors.error-tint}`) · plain reason ("Não conseguimos gerar o PDF. Tente novamente.")
+  - Copy register: calm, plain Portuguese, no hype — the in-progress trio (convertendo/formatando/compilando) are quiet `-info` lines, no warning/error color until something actually fails. `{colors.warning}` reserved for genuine soft-fail (e.g. compiled with avisos).
 
 **`{component.badge}`** — filename chip, image-count note
 - `{typography.caption}` weight 500 · Radius `{rounded.full}` · Padding `{spacing.xs}` `{spacing.sm}` · Default text `{colors.text-secondary}` on `{colors.surface-raised}`; mono content (filenames) in the Mono stack
@@ -323,7 +344,7 @@ No raster images. The prompt panel's mono text scales fluidly inside its contain
 ## 11. Known Gaps
 
 - **Harvest blind spot**: the adsCLI reference was mined from its `DESIGN.md` text, not from a rendered build — exact paddings and the live "Copiado!" timing are this document's own decisions, not pixel-measured values.
-- **In-page document preview not specified**: the tool returns a downloaded `.tex`/`.zip`; it does not render the PDF in-browser (the PDF is produced at Overleaf). If an inline LaTeX/PDF preview is added later, spec it as a Level-1 container with the prompt-panel's mono treatment for source view.
+- ~~**In-page document preview not specified**~~ — RESOLVED (slice #7): preview = compiled PDF embedded inline via `{component.pdf-preview}` inside `{component.prompt-panel}`; download via `{component.download-bar}`. Overleaf + AI-handoff removed (handoff moved server-side).
 - **AI deep-link mechanics out of scope**: how ChatGPT/Claude receive the pre-filled prompt (URL params vs clipboard-and-open) is an implementation detail, not a visual one; `{component.ai-launch-button}` governs appearance only.
 - **`.zip` (with images) handoff** uses the same `{component.status-message}` and `{component.result-card}`; the "Upload Project no Overleaf" guidance is copy, not a new component.
 - **Empty/error states beyond conversion failure** (e.g. a `.docx` that yields an empty body) are not yet specified; until a dedicated pass, fall back to `{component.status-message}` `-erro`.
