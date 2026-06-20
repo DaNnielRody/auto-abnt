@@ -17,8 +17,8 @@
         <h1>auto-ABNT</h1>
         <p class="sub">
           Suba seu <strong>.docx</strong>, preencha os dados da capa e baixe o
-          esqueleto já formatado em ABNT (LaTeX/abnTeX2). Tudo acontece no seu
-          navegador — nada é enviado ou guardado.
+          trabalho já formatado em ABNT (PDF e LaTeX/abnTeX2). O texto não é
+          guardado — só é usado para gerar o seu documento.
         </p>
       </header>
 
@@ -74,56 +74,34 @@
       </form>
 
       <section id="resultado" class="resultado" hidden>
-        <h2>Quase lá — faltam 2 passos</h2>
-        <ol>
-          <li>
-            <strong>Refinar com uma IA:</strong> o arquivo baixado é um rascunho.
-            Clique em uma IA abaixo — ela abre já com o prompt + o .tex prontos
-            pra acertar títulos, referências (NBR 6023) e citações (NBR 10520).
-            <div class="ai-launch-group">
-              <button id="abrir-chatgpt" class="ai-launch" type="button">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <path d="M12 2a10 10 0 100 20 10 10 0 000-20zM2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20" />
-                </svg>
-                Abrir no ChatGPT
-              </button>
-              <button id="abrir-claude" class="ai-launch" type="button">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <path d="M5 19l7-14 7 14M8 14h8" />
-                </svg>
-                Abrir no Claude
-              </button>
-            </div>
-            <div class="prompt-panel">
-              <button id="copiar-prompt" class="copy-button" type="button">
-                Copiar
-              </button>
-              <textarea
-                id="prompt"
-                rows="6"
-                readonly
-                placeholder="O prompt + .tex aparecem aqui ao gerar o arquivo…"
-              ></textarea>
-            </div>
-          </li>
-          <li>
-            <strong>Compilar no Overleaf:</strong> cole o .tex final que a IA
-            devolveu, recompile e baixe o PDF.
-            <div class="ai-launch-group">
-              <a
-                class="ai-launch btn-secondary"
-                href="https://www.overleaf.com/project"
-                target="_blank"
-                rel="noopener"
-                >Abrir o Overleaf</a
-              >
-            </div>
-          </li>
-        </ol>
+        <h2>Seu PDF em ABNT</h2>
+
+        <!-- component.pdf-preview dentro do component.prompt-panel (a única
+             inversão escura da página é o quadro do documento). -->
+        <div id="prompt-panel" class="prompt-panel">
+          <div class="preview-header">
+            <span class="badge">Pré-visualização</span>
+          </div>
+          <p id="preview-placeholder" class="preview-placeholder">
+            A pré-visualização do PDF aparece aqui depois de gerar.
+          </p>
+          <iframe
+            id="preview-frame"
+            class="pdf-preview"
+            title="Pré-visualização do PDF em ABNT"
+            hidden
+          ></iframe>
+        </div>
+
+        <!-- component.download-bar — só visível no estado 'pronto'. -->
+        <div id="download-bar" class="download-bar" hidden>
+          <button id="baixar-pdf" class="primary" type="button">Baixar PDF</button>
+          <button id="baixar-tex" class="btn-secondary" type="button">Baixar .tex</button>
+        </div>
       </section>
 
       <footer>
-        <p>Entrada: .docx · Saída: LaTeX abnTeX2 · 100% no navegador, sem servidor.</p>
+        <p>Entrada: .docx · Saída: PDF + LaTeX abnTeX2 · formatado em ABNT.</p>
       </footer>
     </main>
 
