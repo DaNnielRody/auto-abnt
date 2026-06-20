@@ -87,17 +87,18 @@ export function createRequestHandler(app = buildApp()) {
       }
 
       // POST /checkout — create (or reuse) a charge for a known job ref.
+      // SECURITY: the price is server-authoritative (injected pricing/config).
+      // We deliberately do NOT forward any client-supplied amount/currency — the
+      // gateway bills the configured price regardless. /checkout needs only the ref.
       if (req.method === 'POST' && pathname === '/checkout') {
-        const { ref, amount, currency } = await readJson(req);
+        const { ref } = await readJson(req);
         if (!ref) return sendJson(res, 400, { error: 'ref is required' });
-        const charge = await app.paymentGateway.createCharge({
-          amount: amount ?? undefined,
-          currency: currency ?? undefined,
-          ref,
-        });
+        const charge = await app.paymentGateway.createCharge({ ref });
         return sendJson(res, 200, {
           chargeId: charge.id,
           status: charge.status,
+          // Checkout URL (Stripe) or clientSecret (other gateways) — whichever the adapter returns.
+          checkoutUrl: charge.url ?? null,
           clientSecret: charge.clientSecret ?? null,
         });
       }
