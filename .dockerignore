@@ -1,0 +1,9 @@
+node_modules
+dist
+.codegraph
+.git
+.env
+.env.*
+*.local
+docker/sandbox/keys.local.*
+.DS_Store
