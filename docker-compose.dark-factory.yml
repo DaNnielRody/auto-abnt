@@ -1,0 +1,33 @@
+# Dark-factory sandbox gate. Hardened even though disposable.
+# No DB service yet (no datastore in stack). No ports published to host.
+# `integration` (boot real server, poll HTTP) is PENDING the first backend slice —
+# enable it once Backend Core exists (see .claude/contexts/backend-core).
+x-hardening: &hardening
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: ["ALL"]
+  networks: [dark-factory]
+
+services:
+  unit-tests:                       # default gate
+    <<: *hardening
+    build:
+      context: .
+      dockerfile: Dockerfile.sandbox
+      target: test
+    command: ["node", "test-all.mjs"]
+    read_only: true
+    tmpfs: ["/tmp"]
+    deploy: { resources: { limits: { memory: 512M } } }
+
+  frontend-build:                   # vite build compile check
+    <<: *hardening
+    profiles: ["client"]
+    build:
+      context: .
+      dockerfile: Dockerfile.sandbox
+      target: client-build
+    command: ["true"]
+    deploy: { resources: { limits: { memory: 1G } } }
+
+networks:
+  dark-factory: { driver: bridge }

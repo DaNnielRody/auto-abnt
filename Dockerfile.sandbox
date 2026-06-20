@@ -1,0 +1,29 @@
+# Dark-factory sandbox image. Multi-stage, non-root in every runtime stage.
+# Pinned slim base; never :latest.
+FROM node:22.11.0-bookworm-slim AS deps
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# ---- test stage: runs the node smoke test as unprivileged user ----
+FROM deps AS test
+WORKDIR /app
+RUN groupadd --gid 1001 sandbox \
+ && useradd --uid 1001 --gid 1001 --no-create-home --shell /usr/sbin/nologin sandbox
+COPY --chown=sandbox:sandbox . .
+# dummy sandbox env over any future gitignored real config (LLM/payment keys never enter the image)
+COPY --chown=sandbox:sandbox docker/sandbox/keys.sandbox.env ./.env
+USER sandbox
+ENV NODE_ENV=test
+CMD ["node", "test-all.mjs"]
+
+# ---- client-build stage: vite production build compile check ----
+FROM deps AS client-build
+WORKDIR /app
+RUN groupadd --gid 1001 sandbox \
+ && useradd --uid 1001 --gid 1001 --no-create-home --shell /usr/sbin/nologin sandbox \
+ && chown sandbox:sandbox /app          # vite writes a temp config file into the workdir
+COPY --chown=sandbox:sandbox . .
+USER sandbox
+ENV NODE_ENV=production
+RUN npm run build
