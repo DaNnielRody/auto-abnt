@@ -9,6 +9,7 @@ const files = [
   'tests/format-thesis-usecase.test.mjs',
   'tests/llm-adapters.test.mjs',
   'tests/latex-compiler.test.mjs',
+  'tests/stripe-gateway.test.mjs',
 ];
 
 let failed = 0;
