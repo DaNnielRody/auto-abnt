@@ -8,6 +8,7 @@ const files = [
   'test-smoke.mjs',
   'tests/format-thesis-usecase.test.mjs',
   'tests/llm-adapters.test.mjs',
+  'tests/latex-compiler.test.mjs',
 ];
 
 let failed = 0;
