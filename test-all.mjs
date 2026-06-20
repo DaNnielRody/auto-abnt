@@ -7,6 +7,7 @@ import { spawnSync } from 'node:child_process';
 const files = [
   'test-smoke.mjs',
   'tests/format-thesis-usecase.test.mjs',
+  'tests/llm-adapters.test.mjs',
 ];
 
 let failed = 0;

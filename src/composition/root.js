@@ -17,14 +17,15 @@
 
 import { FormatThesisUseCase } from '../application/use-cases/FormatThesisUseCase.js';
 
-// --- Concrete adapters (Slice 1 = fakes; later = real vendors) -----------------
-// Wired here and NOWHERE else.
+// --- Concrete adapters -----------------
+// Wired here and NOWHERE else. Vendor selection is by env (see selectLlmFormatter).
 import { FakeLlmFormatter } from '../infrastructure/adapters/FakeLlmFormatter.js';
 import { FakeLatexCompiler } from '../infrastructure/adapters/FakeLatexCompiler.js';
 import { FakePaymentGateway } from '../infrastructure/adapters/FakePaymentGateway.js';
+import { createClaudeFormatter } from '../infrastructure/adapters/ClaudeFormatter.js';
+import { createOpenAiFormatter } from '../infrastructure/adapters/OpenAiFormatter.js';
 
-// Later slices swap fakes for real adapters (this file is the ONLY change site):
-//   import { ClaudeFormatter } from '../infrastructure/adapters/ClaudeFormatter.js';
+// Later slices swap the remaining fakes for real adapters (this file is the ONLY change site):
 //   import { StripeGateway }   from '../infrastructure/adapters/StripeGateway.js';
 //   import { TexLiveCompiler } from '../infrastructure/adapters/TexLiveCompiler.js';
 
@@ -45,6 +46,13 @@ import { FakePaymentGateway } from '../infrastructure/adapters/FakePaymentGatewa
  *
  * @param {Object} [env]  Process env / config (price, keys, vendor flags). Defaults to process.env.
  * @returns {App} The wired application surface.
+ *
+ * LlmFormatter selection (env, see selectLlmFormatter):
+ *   LLM_PROVIDER=claude  + ANTHROPIC_API_KEY → real ClaudeFormatter (default vendor)
+ *   LLM_PROVIDER=openai  + OPENAI_API_KEY    → real OpenAiFormatter (alternative)
+ *   LLM_PROVIDER=fake | (no key present)     → FakeLlmFormatter (sandbox/local default; NO network)
+ * Optional model overrides: LLM_MODEL (or CLAUDE_MODEL / OPENAI_MODEL).
+ * Keys are read here only and injected into the adapter; never hardcoded, never logged.
  */
 export function buildApp(env = (typeof process !== 'undefined' ? process.env : {})) {
   // Price config lives here, not in callers. e.g. PRICE_BRL=990 (centavos).
@@ -53,9 +61,9 @@ export function buildApp(env = (typeof process !== 'undefined' ? process.env : {
     currency: env.PRICE_CURRENCY ?? 'BRL',
   };
 
-  // Slice 1: fake adapters. FAKE_AUTOPAY=1 makes charges 'paid' on create
-  // (handy for demos); default keeps them 'pending' until capturePayment runs.
-  const llmFormatter = new FakeLlmFormatter();
+  // LlmFormatter chosen by env; fake by default so the sandbox/local gate stays
+  // green WITHOUT keys (no real vendor call). Other adapters stay fake for now.
+  const llmFormatter = selectLlmFormatter(env);
   const latexCompiler = new FakeLatexCompiler();
   const paymentGateway = new FakePaymentGateway({
     autoPay: env.FAKE_AUTOPAY === '1' || env.FAKE_AUTOPAY === 'true',
@@ -85,4 +93,37 @@ export function buildApp(env = (typeof process !== 'undefined' ? process.env : {
   }
 
   return { formatThesis, paymentGateway, capturePayment, releaseDownload };
+}
+
+/**
+ * Pick the LlmFormatter adapter from env. The ONLY place that reads vendor keys.
+ *
+ * Default is FAKE when no usable provider+key is present, so the sandbox/local
+ * test gate is green without secrets and never makes a real call. `claude` is the
+ * default real vendor; `openai` is the alternative. The global `fetch` is injected
+ * as fetchFn into real adapters (the adapters themselves do no network/SDK import).
+ *
+ * @param {Object} env
+ * @returns {import('../application/ports/LlmFormatter.js').LlmFormatter}
+ */
+function selectLlmFormatter(env) {
+  const provider = String(env.LLM_PROVIDER ?? '').toLowerCase();
+  const fetchFn = typeof fetch !== 'undefined' ? fetch : undefined;
+
+  if (provider === 'claude' && env.ANTHROPIC_API_KEY) {
+    return createClaudeFormatter({
+      fetchFn,
+      apiKey: env.ANTHROPIC_API_KEY,
+      model: env.LLM_MODEL || env.CLAUDE_MODEL,
+    });
+  }
+  if (provider === 'openai' && env.OPENAI_API_KEY) {
+    return createOpenAiFormatter({
+      fetchFn,
+      apiKey: env.OPENAI_API_KEY,
+      model: env.LLM_MODEL || env.OPENAI_MODEL,
+    });
+  }
+  // No provider selected / no key present / LLM_PROVIDER=fake → fake (no network).
+  return new FakeLlmFormatter();
 }
