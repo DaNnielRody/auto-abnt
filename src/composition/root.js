@@ -24,10 +24,10 @@ import { FakeLatexCompiler } from '../infrastructure/adapters/FakeLatexCompiler.
 import { FakePaymentGateway } from '../infrastructure/adapters/FakePaymentGateway.js';
 import { createClaudeFormatter } from '../infrastructure/adapters/ClaudeFormatter.js';
 import { createOpenAiFormatter } from '../infrastructure/adapters/OpenAiFormatter.js';
+import { createTexLiveCompiler, createLatexmkRunner } from '../infrastructure/adapters/TexLiveCompiler.js';
 
 // Later slices swap the remaining fakes for real adapters (this file is the ONLY change site):
 //   import { StripeGateway }   from '../infrastructure/adapters/StripeGateway.js';
-//   import { TexLiveCompiler } from '../infrastructure/adapters/TexLiveCompiler.js';
 
 /**
  * @typedef {Object} App
@@ -53,6 +53,10 @@ import { createOpenAiFormatter } from '../infrastructure/adapters/OpenAiFormatte
  *   LLM_PROVIDER=fake | (no key present)     → FakeLlmFormatter (sandbox/local default; NO network)
  * Optional model overrides: LLM_MODEL (or CLAUDE_MODEL / OPENAI_MODEL).
  * Keys are read here only and injected into the adapter; never hardcoded, never logged.
+ *
+ * LatexCompiler selection (env, see selectLatexCompiler):
+ *   COMPILER=texlive → real TexLiveCompiler (TeX Live + abntex2 via latexmk runner)
+ *   COMPILER=fake | (unset) → FakeLatexCompiler (sandbox/local default; NO binary)
  */
 export function buildApp(env = (typeof process !== 'undefined' ? process.env : {})) {
   // Price config lives here, not in callers. e.g. PRICE_BRL=990 (centavos).
@@ -64,7 +68,7 @@ export function buildApp(env = (typeof process !== 'undefined' ? process.env : {
   // LlmFormatter chosen by env; fake by default so the sandbox/local gate stays
   // green WITHOUT keys (no real vendor call). Other adapters stay fake for now.
   const llmFormatter = selectLlmFormatter(env);
-  const latexCompiler = new FakeLatexCompiler();
+  const latexCompiler = selectLatexCompiler(env);
   const paymentGateway = new FakePaymentGateway({
     autoPay: env.FAKE_AUTOPAY === '1' || env.FAKE_AUTOPAY === 'true',
   });
@@ -126,4 +130,24 @@ function selectLlmFormatter(env) {
   }
   // No provider selected / no key present / LLM_PROVIDER=fake → fake (no network).
   return new FakeLlmFormatter();
+}
+
+/**
+ * Pick the LatexCompiler adapter from env. The ONLY place that selects the engine.
+ *
+ * Default is FAKE so the keyless/binaryless sandbox + local gate stay green WITHOUT
+ * a TeX toolchain. COMPILER=texlive selects the real TeX Live + abntex2 path, which
+ * shells out via the default latexmk runner (only available where TeX Live is
+ * installed — the VPS container; verified-in-CI deferred to slice #10).
+ *
+ * @param {Object} env
+ * @returns {import('../application/ports/LatexCompiler.js').LatexCompiler}
+ */
+function selectLatexCompiler(env) {
+  const compiler = String(env.COMPILER ?? '').toLowerCase();
+  if (compiler === 'texlive') {
+    return createTexLiveCompiler({ run: createLatexmkRunner() });
+  }
+  // Unset / COMPILER=fake → fake (no external process).
+  return new FakeLatexCompiler();
 }
