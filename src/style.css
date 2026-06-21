@@ -373,7 +373,45 @@ button.primary:disabled {
   display: block;
 }
 
-/* ===== component.download-bar — shown only in 'pronto' ===== */
+/* ===== component.paywall — pay-to-unlock block (slice #9) =====
+   Sits in the slot the download-bar will occupy once paid. Composes existing
+   light-surface tokens + the single black primary pill; NOT a new inversion. */
+.paywall {
+  margin-top: var(--spacing-lg);
+  background: var(--colors-surface);
+  border: 1px solid var(--colors-border);
+  border-radius: var(--rounded-card);
+  padding: var(--spacing-xl);
+}
+
+/* value note — typography.body-md, text-secondary */
+.paywall-note {
+  margin: 0 0 var(--spacing-md);
+  font-size: 16px; /* typography.body-md */
+  color: var(--colors-text-secondary);
+}
+
+.paywall-note strong {
+  color: var(--colors-text-primary);
+}
+
+/* component.pay-button reuses component.button-primary (.primary) 1:1.
+   -loading = button-primary-disabled (handled by the native :disabled rule). */
+
+/* reassurance — typography.body-sm, text-tertiary */
+.paywall-reassurance {
+  margin: var(--spacing-md) 0 0;
+  font-size: 14px; /* typography.body-sm */
+  color: var(--colors-text-tertiary);
+}
+
+/* component.paywall-canceled-note — a status-message -info line above the
+   re-shown paywall. Calm, never -erro. Reuses .status.info tokens. */
+.paywall-canceled-note {
+  margin-top: var(--spacing-lg);
+}
+
+/* ===== component.download-bar — gated on server-verified 'pago' ===== */
 .download-bar {
   display: flex;
   gap: var(--spacing-md);

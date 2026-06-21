@@ -254,11 +254,31 @@ Hover policy: hover states exist and are documented per component as `-hover` en
 - Empty/pre-generate: panel shows `{typography.code}` `{colors.text-on-dark-muted}` placeholder line ("A pré-visualização do PDF aparece aqui depois de gerar."); no embed mounted.
 - Responsive: keeps `{rounded.card}` and scrolls internally; never shrinks the PDF below legibility — scroll, don't scale (mirrors prompt-panel rule §9).
 
-**`{component.download-bar}`** — the download affordance row, shown only in the `pronto` state, directly below `{component.pdf-preview}` inside `{component.result-card}`
+**`{component.download-bar}`** — the download affordance row, shown only in the `pago` state (server-verified payment), directly below `{component.pdf-preview}` inside `{component.result-card}`
 - Layout: horizontal row, gap `{spacing.md}`, stacking 1-up below `sm` (both full-width), margin-top `{spacing.lg}`.
-- Primary: `{component.button-primary}` "Baixar PDF" — the new single primary action of the result area (black pill; green is never the CTA).
+- Primary: `{component.button-primary}` "Baixar PDF" — the single primary action of the result area (black pill; green is never the CTA).
 - Optional secondary: `{component.button-secondary}` "Baixar .tex" — equal height, neutral pill, for users who want the source. Omit if only PDF is offered.
-- Hidden until state = `pronto`; never shown during convertendo/formatando/compilando/erro.
+- **Gated on payment** (slice #9): hidden until the job is server-verified `paid`. In the unpaid `pronto` state the area shows `{component.paywall}` instead; the download-bar replaces it only after the Stripe return confirms payment. Never shown during convertendo/formatando/compilando/erro, and never while unpaid.
+
+### Paywall (slice #9 — pay-before-download)
+
+The preview is fully visible before payment (value shown first); the actual file download is gated behind a one-off charge (per billing CONTEXT: capture on download intent, server-verified, never bill on failure). The paywall is a calm, non-pushy gate that sits where `{component.download-bar}` would otherwise be — directly below `{component.pdf-preview}` inside `{component.result-card}`. It is **not** a new inversion or accent moment: it composes existing light-surface tokens and the single black primary pill.
+
+**`{component.paywall}`** — the pay-to-unlock block shown in the unpaid `pronto` state, in the slot `{component.download-bar}` will occupy once paid
+- Container: Background `{colors.surface}` · Border 1px `{colors.border}` · Radius `{rounded.card}` · Padding `{spacing.xl}` · margin-top `{spacing.lg}` (same rhythm the download-bar used).
+- Contents, top to bottom: a one-line value note `{typography.body-md}` `{colors.text-secondary}` ("Seu PDF está pronto. Libere o download por **{preço}**."), then `{component.pay-button}` full-width, then a `{typography.body-sm}` `{colors.text-tertiary}` reassurance line ("Pagamento único, sem assinatura. Pagamento seguro via Stripe.").
+- **Price is data, not copy**: `{preço}` is interpolated from a backend/env-provided value (BRL, formatted server- or client-side from centavos). The doc and UI never hardcode "R$ 9,90" as the source of truth — it is shown but sourced from config.
+- Hidden until state = `pronto` AND not yet paid. Replaced by `{component.download-bar}` once payment is server-verified. Hidden during convertendo/formatando/compilando/erro.
+
+**`{component.pay-button}`** — the checkout CTA that starts the Stripe hosted flow
+- Reuses `{component.button-primary}` exactly (Background `{colors.ink}` · Text `{colors.text-on-ink}` `{typography.body-md}` weight 500 · Radius `{rounded.full}` · Height 44px · Padding 0 `{spacing.lg}` · full-width). The single black pill discipline holds: this is the one primary action of the unpaid result area, so it earns the black pill (the download CTA only appears *after* pay, so the two never coexist).
+- Label: "Pagar {preço} e baixar" — price interpolated from config (see `{component.paywall}`). Green is never used here; it is a CTA, not a ready signal.
+- States: `{component.pay-button-hover}` = `{component.button-primary-hover}` (`{colors.ink-hover}`). `{component.pay-button-loading}` = `{component.button-primary-disabled}` (`{colors.surface-raised}` / `{colors.text-tertiary}`, cursor not-allowed) while the POST /checkout request is in flight and the browser is redirecting to Stripe; label may switch to "Redirecionando…".
+- Click → POST /checkout → browser redirects to the returned hosted `checkoutUrl`. No card fields live on this page (hosted Checkout); no Stripe SDK or styling lives in the design surface.
+- Focus: `{colors.focus}` ring like every interactive element.
+
+**`{component.paywall-canceled-note}`** — the calm note shown when the user returns from Stripe via the cancel_url (`?canceled=1`)
+- Rendered as a `{component.status-message}` `-info` line (NOT `-erro`: a cancel is not a failure) directly above the re-shown `{component.paywall}`: `{typography.body-sm}` weight 500 `{colors.text-secondary}` on `{colors.surface-raised}`, radius `{rounded.full}`, padding `{spacing.xs}` `{spacing.md}` — "Pagamento cancelado. Você pode tentar de novo quando quiser." No error color, no alarm; the paywall simply returns.
 
 ### Inline & Status
 
@@ -270,6 +290,10 @@ Hover policy: hover states exist and are documented per component as `-hover` en
   - `compilando` → `-info` · "Compilando o PDF…"
   - `pronto` → `-ok` (`{colors.success}` on `{colors.success-tint}`) · "Pronto! Seu PDF está pronto para baixar." (this is the green = ready/done moment; pairs with `{component.prompt-panel-ready}`'s `{colors.signal-bright}` top edge)
   - `erro` → `-erro` (`{colors.error}` on `{colors.error-tint}`) · plain reason ("Não conseguimos gerar o PDF. Tente novamente.")
+  - **Payment return states (slice #9), mapped to the same variants — no new tokens:**
+    - `pronto` (unpaid) → `-ok` line as above, with `{component.paywall}` shown below the preview (preview is the value; pay to unlock the file).
+    - `pago` (Stripe success_url, server-verified `paid`) → `-ok` (`{colors.success}` on `{colors.success-tint}`) · "Pagamento confirmado. Seu PDF está liberado para baixar." — the green ready/done moment; pairs with `{component.prompt-panel-ready}`'s `{colors.signal-bright}` edge (already lit from `pronto`). `{component.download-bar}` replaces `{component.paywall}` here.
+    - `cancelado` (Stripe cancel_url, `?canceled=1`) → `-info` (NOT `-erro`) via `{component.paywall-canceled-note}` · "Pagamento cancelado. Você pode tentar de novo quando quiser." — `{component.paywall}` is shown again; nothing is lost.
   - Copy register: calm, plain Portuguese, no hype — the in-progress trio (convertendo/formatando/compilando) are quiet `-info` lines, no warning/error color until something actually fails. `{colors.warning}` reserved for genuine soft-fail (e.g. compiled with avisos).
 
 **`{component.badge}`** — filename chip, image-count note
@@ -347,6 +371,7 @@ No raster images. The prompt panel's mono text scales fluidly inside its contain
 - ~~**In-page document preview not specified**~~ — RESOLVED (slice #7): preview = compiled PDF embedded inline via `{component.pdf-preview}` inside `{component.prompt-panel}`; download via `{component.download-bar}`. Overleaf + AI-handoff removed (handoff moved server-side).
 - **AI deep-link mechanics out of scope**: how ChatGPT/Claude receive the pre-filled prompt (URL params vs clipboard-and-open) is an implementation detail, not a visual one; `{component.ai-launch-button}` governs appearance only.
 - **`.zip` (with images) handoff** uses the same `{component.status-message}` and `{component.result-card}`; the "Upload Project no Overleaf" guidance is copy, not a new component.
+- ~~**Pay-before-download UX not specified**~~ — RESOLVED (slice #9): paywall = `{component.paywall}` + `{component.pay-button}` (reuses `{component.button-primary}`) in the unpaid `pronto` slot; Stripe hosted-redirect return states (`pago`/`cancelado`) map to `{component.status-message}` `-ok`/`-info` (+ `{component.paywall-canceled-note}`); `{component.download-bar}` is gated on server-verified payment.
 - **Empty/error states beyond conversion failure** (e.g. a `.docx` that yields an empty body) are not yet specified; until a dedicated pass, fall back to `{component.status-message}` `-erro`.
 - **Logo/wordmark** does not exist yet; the header specifies typographic treatment only.
 - **`{component.file-drop}` drag-and-drop** is specified visually (`-dragover`); the current build uses a plain file input — the drag affordance is a forward-looking spec for the implementation pass.

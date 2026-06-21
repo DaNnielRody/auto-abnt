@@ -93,7 +93,29 @@
           ></iframe>
         </div>
 
-        <!-- component.download-bar — só visível no estado 'pronto'. -->
+        <!-- component.paywall-canceled-note — nota calma quando volta do
+             cancel_url do Stripe (?canceled=1). NÃO é erro. -->
+        <p id="paywall-canceled-note" class="status info paywall-canceled-note" hidden>
+          Pagamento cancelado. Você pode tentar de novo quando quiser.
+        </p>
+
+        <!-- component.paywall — bloco de "pague para liberar", no slot que a
+             download-bar ocupa depois de pago. Só visível em 'pronto' não-pago. -->
+        <div id="paywall" class="paywall" hidden>
+          <p class="paywall-note">
+            Seu PDF está pronto. Libere o download por
+            <strong id="paywall-price">…</strong>.
+          </p>
+          <button id="pagar" class="primary" type="button">
+            Pagar e baixar
+          </button>
+          <p class="paywall-reassurance">
+            Pagamento único, sem assinatura. Pagamento seguro via Stripe.
+          </p>
+        </div>
+
+        <!-- component.download-bar — gated: só aparece no estado 'pago'
+             (pagamento verificado pelo servidor). -->
         <div id="download-bar" class="download-bar" hidden>
           <button id="baixar-pdf" class="primary" type="button">Baixar PDF</button>
           <button id="baixar-tex" class="btn-secondary" type="button">Baixar .tex</button>
