@@ -25,12 +25,19 @@ export class FakeLlmFormatter {
     const meta = metadata ?? {};
     const titulo = meta.titulo ?? 'Sem título';
     const autor = meta.autor ?? 'Autor desconhecido';
+    // `\local`/`\data` are required by abntex2's `\imprimircapa` (the title page
+    // prints them); emit safe defaults so the fake output is a COMPLETE, genuinely
+    // compilable abnTeX2 document (used by the integration smoke against real TeX Live).
+    const local = meta.cidade ?? 'Cidade';
+    const data = meta.ano ?? '2026';
 
     // Plausible "finished" abnTeX2 document echoing the draft + cover metadata.
     const latex = [
       '\\documentclass[12pt,a4paper]{abntex2}% FINISHED (fake formatter)',
       `\\titulo{${titulo}}`,
       `\\autor{${autor}}`,
+      `\\local{${local}}`,
+      `\\data{${data}}`,
       '\\begin{document}',
       '\\imprimircapa',
       '% --- conteúdo formatado a partir do RASCUNHO abaixo ---',

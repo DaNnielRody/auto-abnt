@@ -1,7 +1,9 @@
 # Dark-factory sandbox gate. Hardened even though disposable.
 # No DB service yet (no datastore in stack). No ports published to host.
-# `integration` (boot real server, poll HTTP) is PENDING the first backend slice —
-# enable it once Backend Core exists (see .claude/contexts/backend-core).
+# `unit-tests` (default) + `frontend-build` (client profile) run the sandbox image.
+# `integration` (integration profile) builds the PRODUCTION image (Node + TeX Live/
+# abntex2) and runs docker/sandbox/smoke.sh: boots the server, polls /health, then
+# POSTs /format and asserts a REAL compiled PDF — proving abntex2 actually compiles.
 x-hardening: &hardening
   security_opt: ["no-new-privileges:true"]
   cap_drop: ["ALL"]
@@ -27,6 +29,27 @@ services:
       dockerfile: Dockerfile.sandbox
       target: client-build
     command: ["true"]
+    deploy: { resources: { limits: { memory: 1G } } }
+
+  integration:                      # PRODUCTION image: real abntex2 compile gate
+    <<: *hardening
+    profiles: ["integration"]
+    build:
+      context: .
+      dockerfile: Dockerfile        # the production image (Node + TeX Live/abntex2)
+      target: runtime
+    # No external vendors: fake LLM + fake payment, but REAL TeX Live compiler.
+    environment:
+      PORT: "3000"
+      COMPILER: "texlive"
+      LLM_PROVIDER: "fake"
+      PAYMENT_PROVIDER: "fake"
+      PRICE_BRL: "990"
+    # Boot the server + run the smoke (poll /health, POST /format, assert real PDF).
+    # Self-contained in one container: no host ports, exit code = smoke result.
+    command: ["sh", "/app/docker/sandbox/smoke.sh"]
+    read_only: true
+    tmpfs: ["/tmp"]                 # mkdtemp workdir + server.log live here
     deploy: { resources: { limits: { memory: 1G } } }
 
 networks:
