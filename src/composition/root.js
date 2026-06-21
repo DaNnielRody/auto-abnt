@@ -34,8 +34,16 @@ import { createStripeGateway } from '../infrastructure/adapters/StripeGateway.js
  *   The wired gateway (exposed so the HTTP boundary can verify/capture charges).
  * @property {(charge:{id:string}) => Promise<void>} capturePayment
  *   Slice-1 helper simulating a webhook/poll that captures a charge as paid.
- * @property {(job:{chargeId:string, pdf?:Uint8Array}) => Promise<{released:boolean, pdf?:Uint8Array, status:string}>} releaseDownload
- *   Gate: returns the PDF ONLY when server-side verify(chargeId) === 'paid'.
+ * @property {{amount:number, currency:string, formatted:string}} pricing
+ *   Server-authoritative price exposed for the UI (data, never hardcoded copy).
+ * @property {(request:object) => Promise<import('../domain/types.js').FormattingJob>} createJob
+ *   Runs FormatThesisUseCase AND retains the job server-side keyed by job.id.
+ * @property {(id:string) => (import('../domain/types.js').FormattingJob|undefined)} getJob
+ *   The retained job, or undefined.
+ * @property {(jobId:string) => Promise<{chargeId:string, checkoutUrl:(string|null), status:string}>} startCheckout
+ *   Creates a charge at the SERVER price and links its id to the job.
+ * @property {(jobId:string, chargeId:string) => Promise<{released:boolean, status:string, pdf?:Uint8Array}>} releaseDownload
+ *   Gate: returns the PDF ONLY when chargeId is the job's linked one AND verify === 'paid'.
  */
 
 /**
@@ -66,10 +74,21 @@ import { createStripeGateway } from '../infrastructure/adapters/StripeGateway.js
  */
 export function buildApp(env = (typeof process !== 'undefined' ? process.env : {})) {
   // Price config lives here, not in callers. e.g. PRICE_BRL=990 (centavos).
+  // Server-AUTHORITATIVE: amount/currency exposed to the UI + sent to the gateway
+  // come from here, NEVER from the client. `formatted` is derived from amount so
+  // the UI renders the price as data (never hardcodes "R$ 9,90").
+  const amount = Number(env.PRICE_BRL ?? 990);
   const pricing = {
-    amount: Number(env.PRICE_BRL ?? 990),
-    currency: env.PRICE_CURRENCY ?? 'BRL',
+    amount,
+    currency: 'brl',
+    formatted: formatBrl(amount),
   };
+
+  // In-memory job store keyed by job.id. Holds the preview pdf + ref + linked
+  // chargeId so /checkout and /download can resolve a job after the Stripe
+  // redirect. NOTE: not durable — a later slice persists this (see ARCHITECTURE).
+  /** @type {Map<string, import('../domain/types.js').FormattingJob>} */
+  const jobStore = new Map();
 
   // LlmFormatter chosen by env; fake by default so the sandbox/local gate stays
   // green WITHOUT keys (no real vendor call). Other adapters stay fake for now.
@@ -91,16 +110,101 @@ export function buildApp(env = (typeof process !== 'undefined' ? process.env : {
     }
   }
 
-  /** Download gate: release the PDF ONLY when verify(chargeId) === 'paid'. */
-  async function releaseDownload(job) {
-    const status = await paymentGateway.verify(job.chargeId);
+  /**
+   * Run the formatting use-case AND retain the resulting job server-side keyed by
+   * its id (holding the preview pdf + ref), so /checkout and /download can resolve
+   * it by id after the Stripe redirect.
+   * @param {import('../application/use-cases/FormatThesisUseCase.js').FormatThesisRequest} request
+   * @returns {Promise<import('../domain/types.js').FormattingJob>}
+   */
+  async function createJob(request) {
+    const job = await formatThesis.execute(request);
+    jobStore.set(job.id, job);
+    return job;
+  }
+
+  /** @param {string} id @returns {import('../domain/types.js').FormattingJob | undefined} */
+  function getJob(id) {
+    return jobStore.get(id);
+  }
+
+  /**
+   * Start checkout for a retained job. Bills the SERVER price (pricing.amount /
+   * pricing.currency) — any client-supplied amount/currency is IGNORED. Links the
+   * created chargeId onto the job so /download can verify it after redirect.
+   * @param {string} jobId
+   * @returns {Promise<{ chargeId:string, checkoutUrl:(string|null), status:string }>}
+   */
+  async function startCheckout(jobId /* , clientInput ignored */) {
+    const job = jobStore.get(jobId);
+    if (!job) {
+      throw new Error(`startCheckout: unknown job ${jobId}`);
+    }
+    // SERVER pricing only. Distinct ref (`:checkout`) so this charge is fully
+    // owned by checkout (not the use-case's pre-charge) and idempotent on retry.
+    const charge = await paymentGateway.createCharge({
+      amount: pricing.amount,
+      currency: pricing.currency,
+      ref: `${jobId}:checkout`,
+    });
+    job.chargeId = charge.id;
+    return {
+      chargeId: charge.id,
+      checkoutUrl: charge.url ?? null,
+      status: charge.status,
+    };
+  }
+
+  /**
+   * Download gate. Releases the preview pdf ONLY when the chargeId is the one
+   * LINKED to the job AND verify(chargeId) === 'paid'. Fails closed: a mismatched
+   * or unknown chargeId, or an unknown job, NEVER releases the pdf.
+   * @param {string} jobId
+   * @param {string} chargeId
+   * @returns {Promise<{ released:boolean, status:string, pdf?:Uint8Array }>}
+   */
+  async function releaseDownload(jobId, chargeId) {
+    const job = jobStore.get(jobId);
+    // Unknown job, or a chargeId not linked to this job → reject (no pdf).
+    if (!job || !job.chargeId || chargeId !== job.chargeId) {
+      return { released: false, status: 'rejected' };
+    }
+    let status;
+    try {
+      status = await paymentGateway.verify(chargeId);
+    } catch {
+      // Unknown charge on the gateway → fail closed (never falsely release).
+      return { released: false, status: 'rejected' };
+    }
     if (status !== 'paid') {
       return { released: false, status };
     }
     return { released: true, status, pdf: job.pdf };
   }
 
-  return { formatThesis, paymentGateway, capturePayment, releaseDownload };
+  return {
+    formatThesis,
+    paymentGateway,
+    pricing,
+    capturePayment,
+    createJob,
+    getJob,
+    startCheckout,
+    releaseDownload,
+  };
+}
+
+/**
+ * Format a centavos amount as a BRL string, e.g. 990 → 'R$ 9,90'.
+ * Simple/correct: integer reais + two-digit centavos with a comma separator.
+ * @param {number} centavos
+ * @returns {string}
+ */
+function formatBrl(centavos) {
+  const cents = Math.round(Number(centavos) || 0);
+  const reais = Math.floor(cents / 100);
+  const rest = String(cents % 100).padStart(2, '0');
+  return `R$ ${reais},${rest}`;
 }
 
 /**
@@ -193,12 +297,24 @@ function selectPaymentGateway(env, pricing) {
   const fetchFn = resolveFetch();
 
   if (provider === 'stripe' && env.STRIPE_API_KEY) {
+    // Redirect URLs carry our job id + chargeId so the SPA returns to the right
+    // job and can call GET /download/:job?chargeId=... after Checkout. The job id
+    // is the Checkout client_reference_id (set by the gateway from ref); the
+    // chargeId is the Checkout Session id, expanded by Stripe via the template
+    // {CHECKOUT_SESSION_ID}. Default shape (override via CHECKOUT_*_URL):
+    //   success: ${BASE}/?job=<id>&chargeId=<sessionId>&paid=1
+    //   cancel:  ${BASE}/?canceled=1
+    const base = env.APP_BASE_URL ?? 'https://auto-abnt.app';
+    const successUrl =
+      env.CHECKOUT_SUCCESS_URL ??
+      `${base}/?job={CLIENT_REFERENCE_ID}&chargeId={CHECKOUT_SESSION_ID}&paid=1`;
+    const cancelUrl = env.CHECKOUT_CANCEL_URL ?? `${base}/?canceled=1`;
     return createStripeGateway({
       fetchFn,
       apiKey: env.STRIPE_API_KEY,
       pricing: { amount: Number(env.PRICE_BRL ?? pricing.amount ?? 990), currency: 'brl' },
-      successUrl: env.CHECKOUT_SUCCESS_URL,
-      cancelUrl: env.CHECKOUT_CANCEL_URL,
+      successUrl,
+      cancelUrl,
     });
   }
   // No provider / no key / PAYMENT_PROVIDER=fake → fake (keyless, no network).

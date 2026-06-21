@@ -78,12 +78,20 @@ export function createStripeGateway({ fetchFn, apiKey, pricing, successUrl, canc
         throw new Error('StripeGateway: createCharge requires a ref');
       }
 
+      // The job id is the ref's base (startCheckout uses `<jobId>:checkout`). The
+      // redirect URLs carry our job id (substituted now) + chargeId (the Checkout
+      // Session id, expanded by Stripe via {CHECKOUT_SESSION_ID}) so the SPA can
+      // call GET /download/:job?chargeId=... after the redirect.
+      const jobId = ref.includes(':') ? ref.slice(0, ref.indexOf(':')) : ref;
+      const withJob = (u) =>
+        u.replaceAll('{CLIENT_REFERENCE_ID}', encodeURIComponent(jobId));
+
       // Build the nested Stripe form keys from the INJECTED price (never the client's).
       const form = new URLSearchParams();
       form.set('mode', 'payment');
       form.set('client_reference_id', ref);
-      form.set('success_url', success);
-      form.set('cancel_url', cancel);
+      form.set('success_url', withJob(success));
+      form.set('cancel_url', withJob(cancel));
       form.set('line_items[0][quantity]', '1');
       form.set('line_items[0][price_data][currency]', pricing.currency);
       form.set('line_items[0][price_data][unit_amount]', String(pricing.amount));

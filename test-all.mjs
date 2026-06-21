@@ -10,6 +10,7 @@ const files = [
   'tests/llm-adapters.test.mjs',
   'tests/latex-compiler.test.mjs',
   'tests/stripe-gateway.test.mjs',
+  'tests/payment-flow.test.mjs',
 ];
 
 let failed = 0;
