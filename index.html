@@ -12,121 +12,321 @@
     />
   </head>
   <body>
-    <main class="container">
-      <header>
-        <h1>auto-ABNT</h1>
-        <p class="sub">
-          Suba seu <strong>.docx</strong>, preencha os dados da capa e baixe o
-          trabalho já formatado em ABNT (PDF e LaTeX/abnTeX2). O texto não é
-          guardado — só é usado para gerar o seu documento.
+    <!-- component.notification-bar — thin calm top strip (reassurance, no sale) -->
+    <div class="notification-bar">
+      <span
+        >100% online · seu texto não é guardado · pague só quando baixar.</span
+      >
+    </div>
+
+    <!-- component.site-header — landing header (wordmark · nav · one black CTA) -->
+    <header class="site-header">
+      <div class="site-header-inner">
+        <a href="#topo" class="wordmark">auto-ABNT</a>
+        <!-- component.nav -->
+        <nav class="nav" aria-label="Navegação principal">
+          <a href="#como-funciona" class="nav-link" data-scroll
+            >Como funciona</a
+          >
+          <a href="#preco" class="nav-link" data-scroll>Preço</a>
+        </nav>
+        <!-- header CTA: scrolls to the tool (shares the single-primary budget) -->
+        <a href="#ferramenta" class="primary header-cta" data-scroll
+          >Gerar agora</a
+        >
+      </div>
+    </header>
+
+    <span id="topo"></span>
+
+    <main>
+    <!-- component.hero — opening section (centered, our colors) -->
+    <section class="section hero">
+      <div class="landing-col">
+        <h1 class="hero-title">
+          Seu trabalho em ABNT,<br />
+          <span class="hero-accent">pronto para entregar.</span>
+        </h1>
+        <p class="hero-subtitle">
+          Suba o .docx, preencha a capa, baixe o PDF formatado nas normas. Sem
+          Overleaf, sem instalar nada.
         </p>
-      </header>
-
-      <form id="form">
-        <fieldset>
-          <legend>1. Dados da capa e folha de rosto</legend>
-          <div class="grid">
-            <label>Título do trabalho
-              <input name="titulo" required placeholder="Ex: A influência de..." />
-            </label>
-            <label>Seu nome
-              <input name="autor" required placeholder="Nome completo" />
-            </label>
-            <label>Instituição
-              <input name="instituicao" placeholder="Ex: Universidade Federal de..." />
-            </label>
-            <label>Curso
-              <input name="curso" placeholder="Ex: Pedagogia" />
-            </label>
-            <label>Orientador(a)
-              <input name="orientador" placeholder="Prof. Dr. ..." />
-            </label>
-            <label>Cidade
-              <input name="cidade" placeholder="Ex: São Paulo" />
-            </label>
-            <label>Ano
-              <input name="ano" placeholder="Ex: 2026" inputmode="numeric" />
-            </label>
-          </div>
-          <label class="full">Resumo (opcional)
-            <textarea name="resumo" rows="3" placeholder="Cole aqui o resumo do trabalho"></textarea>
-          </label>
-          <label class="full">Palavras-chave (opcional, separadas por ; )
-            <input name="palavrasChave" placeholder="educação; tecnologia; aprendizagem" />
-          </label>
-          <label class="full">Abstract — resumo em inglês (opcional)
-            <textarea name="abstract" rows="3" placeholder="English version of the resumo"></textarea>
-          </label>
-          <label class="full">Keywords (opcional, separadas por ; )
-            <input name="keywords" placeholder="education; technology; learning" />
-          </label>
-        </fieldset>
-
-        <fieldset>
-          <legend>2. O corpo do trabalho</legend>
-          <label class="file">Arquivo .docx (o Word original)
-            <input type="file" id="docx" name="docx" accept=".docx" required />
-          </label>
-        </fieldset>
-
-        <button type="submit" class="primary">Gerar arquivo ABNT</button>
-        <p id="status" class="status"></p>
-      </form>
-
-      <section id="resultado" class="resultado" hidden>
-        <h2>Seu PDF em ABNT</h2>
-
-        <!-- component.pdf-preview dentro do component.prompt-panel (a única
-             inversão escura da página é o quadro do documento). -->
-        <div id="prompt-panel" class="prompt-panel">
-          <div class="preview-header">
-            <span class="badge">Pré-visualização</span>
-          </div>
-          <p id="preview-placeholder" class="preview-placeholder">
-            A pré-visualização do PDF aparece aqui depois de gerar.
-          </p>
-          <iframe
-            id="preview-frame"
-            class="pdf-preview"
-            title="Pré-visualização do PDF em ABNT"
-            hidden
-          ></iframe>
+        <div class="hero-cta-row">
+          <a href="#ferramenta" class="primary" data-scroll>Gerar meu PDF</a>
+          <a href="#como-funciona" class="btn-secondary" data-scroll
+            >Como funciona</a
+          >
         </div>
-
-        <!-- component.paywall-canceled-note — nota calma quando volta do
-             cancel_url do Stripe (?canceled=1). NÃO é erro. -->
-        <p id="paywall-canceled-note" class="status info paywall-canceled-note" hidden>
-          Pagamento cancelado. Você pode tentar de novo quando quiser.
+        <!-- component.norms-line — honest reassurance, mono norm numbers -->
+        <p class="norms-line">
+          <span class="norms-lead">Segue as normas:</span>
+          <span class="norms-codes">NBR 14724 · 6023 · 10520</span>
         </p>
+      </div>
+    </section>
 
-        <!-- component.paywall — bloco de "pague para liberar", no slot que a
-             download-bar ocupa depois de pago. Só visível em 'pronto' não-pago. -->
-        <div id="paywall" class="paywall" hidden>
-          <p class="paywall-note">
-            Seu PDF está pronto. Libere o download por
-            <strong id="paywall-price">…</strong>.
-          </p>
-          <button id="pagar" class="primary" type="button">
-            Pagar e baixar
-          </button>
-          <p class="paywall-reassurance">
-            Pagamento único, sem assinatura. Pagamento seguro via Stripe.
+    <!-- component.tool-section — the EXISTING tool, framed. Markup unchanged. -->
+    <section id="ferramenta" class="section tool-section">
+      <div class="landing-col">
+        <!-- component.section-heading -->
+        <div class="section-heading">
+          <p class="eyebrow">A ferramenta</p>
+          <h2 class="section-title">Gere seu documento agora</h2>
+          <p class="section-subtitle">
+            Preencha a capa, suba o .docx e veja o PDF na hora.
           </p>
         </div>
 
-        <!-- component.download-bar — gated: só aparece no estado 'pago'
-             (pagamento verificado pelo servidor). -->
-        <div id="download-bar" class="download-bar" hidden>
-          <button id="baixar-pdf" class="primary" type="button">Baixar PDF</button>
-          <button id="baixar-tex" class="btn-secondary" type="button">Baixar .tex</button>
-        </div>
-      </section>
+        <!-- tool column: original 768px reading column inside the wider band -->
+        <div class="tool-col">
+          <form id="form">
+            <fieldset>
+              <legend>1. Dados da capa e folha de rosto</legend>
+              <div class="grid">
+                <label
+                  >Título do trabalho
+                  <input
+                    name="titulo"
+                    required
+                    placeholder="Ex: A influência de..."
+                  />
+                </label>
+                <label
+                  >Seu nome
+                  <input name="autor" required placeholder="Nome completo" />
+                </label>
+                <label
+                  >Instituição
+                  <input
+                    name="instituicao"
+                    placeholder="Ex: Universidade Federal de..."
+                  />
+                </label>
+                <label
+                  >Curso
+                  <input name="curso" placeholder="Ex: Pedagogia" />
+                </label>
+                <label
+                  >Orientador(a)
+                  <input name="orientador" placeholder="Prof. Dr. ..." />
+                </label>
+                <label
+                  >Cidade
+                  <input name="cidade" placeholder="Ex: São Paulo" />
+                </label>
+                <label
+                  >Ano
+                  <input
+                    name="ano"
+                    placeholder="Ex: 2026"
+                    inputmode="numeric"
+                  />
+                </label>
+              </div>
+              <label class="full"
+                >Resumo (opcional)
+                <textarea
+                  name="resumo"
+                  rows="3"
+                  placeholder="Cole aqui o resumo do trabalho"
+                ></textarea>
+              </label>
+              <label class="full"
+                >Palavras-chave (opcional, separadas por ; )
+                <input
+                  name="palavrasChave"
+                  placeholder="educação; tecnologia; aprendizagem"
+                />
+              </label>
+              <label class="full"
+                >Abstract — resumo em inglês (opcional)
+                <textarea
+                  name="abstract"
+                  rows="3"
+                  placeholder="English version of the resumo"
+                ></textarea>
+              </label>
+              <label class="full"
+                >Keywords (opcional, separadas por ; )
+                <input
+                  name="keywords"
+                  placeholder="education; technology; learning"
+                />
+              </label>
+            </fieldset>
 
-      <footer>
-        <p>Entrada: .docx · Saída: PDF + LaTeX abnTeX2 · formatado em ABNT.</p>
-      </footer>
+            <fieldset>
+              <legend>2. O corpo do trabalho</legend>
+              <label class="file"
+                >Arquivo .docx (o Word original)
+                <input
+                  type="file"
+                  id="docx"
+                  name="docx"
+                  accept=".docx"
+                  required
+                />
+              </label>
+            </fieldset>
+
+            <button type="submit" class="primary">Gerar arquivo ABNT</button>
+            <p id="status" class="status"></p>
+          </form>
+
+          <section id="resultado" class="resultado" hidden>
+            <h2>Seu PDF em ABNT</h2>
+
+            <!-- component.pdf-preview dentro do component.prompt-panel (a única
+                 inversão escura da página é o quadro do documento). -->
+            <div id="prompt-panel" class="prompt-panel">
+              <div class="preview-header">
+                <span class="badge">Pré-visualização</span>
+              </div>
+              <p id="preview-placeholder" class="preview-placeholder">
+                A pré-visualização do PDF aparece aqui depois de gerar.
+              </p>
+              <iframe
+                id="preview-frame"
+                class="pdf-preview"
+                title="Pré-visualização do PDF em ABNT"
+                hidden
+              ></iframe>
+            </div>
+
+            <!-- component.paywall-canceled-note — nota calma quando volta do
+                 cancel_url do Stripe (?canceled=1). NÃO é erro. -->
+            <p
+              id="paywall-canceled-note"
+              class="status info paywall-canceled-note"
+              hidden
+            >
+              Pagamento cancelado. Você pode tentar de novo quando quiser.
+            </p>
+
+            <!-- component.paywall — bloco de "pague para liberar", no slot que a
+                 download-bar ocupa depois de pago. Só visível em 'pronto' não-pago. -->
+            <div id="paywall" class="paywall" hidden>
+              <p class="paywall-note">
+                Seu PDF está pronto. Libere o download por
+                <strong id="paywall-price">…</strong>.
+              </p>
+              <button id="pagar" class="primary" type="button">
+                Pagar e baixar
+              </button>
+              <p class="paywall-reassurance">
+                Pagamento único, sem assinatura. Pagamento seguro via Stripe.
+              </p>
+            </div>
+
+            <!-- component.download-bar — gated: só aparece no estado 'pago'
+                 (pagamento verificado pelo servidor). -->
+            <div id="download-bar" class="download-bar" hidden>
+              <button id="baixar-pdf" class="primary" type="button">
+                Baixar PDF
+              </button>
+              <button id="baixar-tex" class="btn-secondary" type="button">
+                Baixar .tex
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <!-- component.feature-card ×3 — "Como funciona" / value band -->
+    <section id="como-funciona" class="section feature-band">
+      <div class="landing-col">
+        <div class="section-heading">
+          <p class="eyebrow">Como funciona</p>
+          <h2 class="section-title">Do Word ao PDF ABNT, direto</h2>
+        </div>
+        <div class="feature-grid">
+          <article class="feature-card">
+            <h3 class="feature-title">Sem Overleaf</h3>
+            <p class="feature-body">
+              Nada de instalar LaTeX nem mexer em Overleaf. Você sobe o .docx e
+              pronto — a formatação acontece pra você.
+            </p>
+          </article>
+          <article class="feature-card">
+            <h3 class="feature-title">PDF pronto na hora</h3>
+            <p class="feature-body">
+              O documento já sai compilado em PDF, dentro das normas, pronto
+              para revisar e entregar.
+            </p>
+          </article>
+          <article class="feature-card">
+            <h3 class="feature-title">IA treinada nas normas ABNT</h3>
+            <p class="feature-body">
+              A formatação segue as normas NBR 14724, 6023 e 10520 — capa,
+              folha de rosto, citações e referências no lugar certo.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- component.price-card — single honest one-off price (from GET /config) -->
+    <section id="preco" class="section price-band">
+      <div class="landing-col">
+        <div class="section-heading">
+          <p class="eyebrow">Preço</p>
+          <h2 class="section-title">Um preço, uma vez</h2>
+        </div>
+        <div class="price-card">
+          <span class="badge price-badge">Pagamento único</span>
+          <p class="price-amount" id="landing-price">…</p>
+          <p class="price-qualifier">uma vez · sem assinatura</p>
+          <p class="price-inclusion">PDF formatado + arquivo .tex</p>
+          <a href="#ferramenta" class="primary" data-scroll>Gerar e baixar</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- component.cta-band — closing CTA (calm band, never colored) -->
+    <section class="section cta-band">
+      <div class="landing-col">
+        <h2 class="section-title">Pronto para entregar no prazo?</h2>
+        <p class="cta-line">
+          Suba seu .docx agora e baixe o PDF formatado em minutos.
+        </p>
+        <div class="cta-row">
+          <a href="#ferramenta" class="primary" data-scroll>Gerar meu PDF</a>
+          <a href="#preco" class="btn-secondary" data-scroll>Ver o preço</a>
+        </div>
+      </div>
+    </section>
     </main>
 
+    <!-- component.footer — extended multi-column footer -->
+    <footer class="site-footer">
+      <div class="landing-col">
+        <div class="footer-cols">
+          <div class="footer-brand">
+            <p class="footer-wordmark">auto-ABNT</p>
+            <p class="footer-tagline">Seu .docx em PDF ABNT, na hora.</p>
+          </div>
+          <div class="footer-links">
+            <div class="footer-col">
+              <p class="footer-heading">Produto</p>
+              <a href="#como-funciona" data-scroll>Como funciona</a>
+              <a href="#preco" data-scroll>Preço</a>
+              <a href="#como-funciona" data-scroll>Normas ABNT</a>
+            </div>
+            <div class="footer-col">
+              <p class="footer-heading">Sobre</p>
+              <a href="#topo" data-scroll>Privacidade</a>
+              <a href="#topo" data-scroll>Contato</a>
+            </div>
+          </div>
+        </div>
+        <p class="footer-trust">
+          Entrada: .docx · Saída: PDF + LaTeX abnTeX2 · formatado em ABNT.
+        </p>
+      </div>
+    </footer>
+
     <script type="module" src="/src/main.js"></script>
+    <script type="module" src="/src/landing.js"></script>
   </body>
 </html>
