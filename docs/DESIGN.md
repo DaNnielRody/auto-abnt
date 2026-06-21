@@ -128,6 +128,12 @@ Base unit: **4px**.
 | `{spacing.xl}` | 32px |
 | `{spacing.2xl}` | 48px |
 | `{spacing.3xl}` | 64px |
+| `{spacing.4xl}` | 96px |
+
+`{spacing.4xl}` (96px) is the **landing section rhythm** token (slice #8): the vertical
+gap between top-level landing sections (`{component.section}`). It is the only new spacing
+token the landing introduces; everything else composes the existing scale. On `sm` it
+compresses to `{spacing.2xl}` (see §9).
 
 Dominant rhythm: the page is a single vertical flow — header → form → status → result. Major blocks (form card, result card) are separated by `{spacing.2xl}`. Inside a card, legend-to-fields gap is `{spacing.lg}`; field-to-field gap `{spacing.md}`. The footer sits `{spacing.3xl}` below the last block.
 
@@ -138,6 +144,12 @@ Dominant rhythm: the page is a single vertical flow — header → form → stat
 | Page column | 768px | Single centered column |
 | Cover fields | 768px | 2-up form grid (`{spacing.md}` gutter), collapsing 2 → 1 below `sm` |
 | Full-width fields | 768px | Resumo / Abstract textareas and the file drop span the full column |
+| Landing content column | 1040px | Marketing sections (`{component.section}`) — wider than the tool column so hero/cards/pricing breathe; centered with `{spacing.lg}` side gutters |
+| Tool section column | 768px | The housed tool (`{component.tool-section}`) keeps the original 768px reading column inside the wider landing — the form is never widened (§4 whitespace rule) |
+
+The landing introduces a **second, wider container** (1040px) for marketing sections only.
+The tool itself stays in its original 768px column — a thesis-anxious user never faces a
+wider wall of fields (§4). Two container widths total; no per-section widths.
 
 ### Whitespace Philosophy
 
@@ -301,11 +313,87 @@ The preview is fully visible before payment (value shown first); the actual file
 
 ### Header & Footer
 
-**`{component.header}`** — page top (no nav links; single-page tool)
+**`{component.header}`** — page top (no nav links; single-page tool). **Superseded on the landing (slice #8)** by `{component.site-header}` (which DOES have nav). The bare-tool header survives as the typographic basis of `{component.hero}` (same Display wordmark + subline treatment), and remains the canonical header for any standalone/embedded tool view.
 - Background `{colors.surface}` · No border · Wordmark "auto-ABNT" Display face weight 600 `{typography.display}` `{colors.text-primary}` · Subline `{typography.body-lg}` `{colors.text-secondary}`, max-width 52ch
 
-**`{component.footer}`**
-- Background `{colors.surface}` · Top border 1px `{colors.border}` · Padding `{spacing.3xl}` 0 · Single line `{typography.body-sm}` `{colors.text-secondary}` ("Entrada: .docx · Saída: LaTeX abnTeX2 · 100% no navegador, sem servidor.")
+**`{component.footer}`** — extended for the landing (slice #8): now a multi-column footer
+- Background `{colors.surface}` · Top border 1px `{colors.border}` · Padding `{spacing.3xl}` 0 · Inner content constrained to the landing column (1040px, §4).
+- Layout: wordmark block (left) + two link columns (right), space-between, gap `{spacing.2xl}`; stacks 1-up below `sm`.
+- Wordmark block: "auto-ABNT" Display face weight 600 `{typography.h3}` `{colors.text-primary}`, then a `{typography.body-sm}` `{colors.text-secondary}` one-liner ("Seu .docx em PDF ABNT, na hora.").
+- Link columns: each a `{typography.caption}` weight 500 uppercase `{colors.text-tertiary}` heading, then `{typography.body-sm}` `{colors.text-secondary}` links (e.g. "Produto": Como funciona · Preço · Normas ABNT; "Sobre": Privacidade · Contato). Link hover: `{colors.text-primary}`, no underline-on-rest.
+- Bottom line (full width, above the columns or below, `{spacing.lg}` separation): the original reassurance `{typography.body-sm}` `{colors.text-secondary}` — "Entrada: .docx · Saída: PDF + LaTeX abnTeX2 · formatado em ABNT." Kept verbatim from the tool footer so the trust line survives the redesign.
+
+### Landing (slice #8 — enterprise marketing layout, OUR tokens)
+
+The landing **wraps** the existing tool: the cover form + result area (`{component.fieldset}` / `{component.prompt-panel}` / `{component.pdf-preview}` / `{component.paywall}` / `{component.download-bar}`) are unchanged and become the centerpiece section (`{component.tool-section}`). Marketing sections borrow Apply4You's vertical rhythm/positioning **only** — never its color. The signature holds: light-first page, one dark inversion (the prompt panel inside the tool), green = signal only, one black primary pill.
+
+**`{component.notification-bar}`** — thin top strip (the Apply4You notification bar, calm version)
+- Background `{colors.surface-raised}` · Bottom border 1px `{colors.border}` · No radius (full-bleed strip; the two-radii rule governs *components*, not a full-bleed edge — but it carries no interactive children except optional links). Height ~36px, vertically centered.
+- Single centered line `{typography.caption}` weight 500 `{colors.text-secondary}` — reassurance, not a sale: "100% online · seu texto não é guardado · pague só quando baixar." Green is NOT used here (it is not a success state).
+- Optional: dismissible — the dismiss control is a `{component.button-ghost}` (caption size). Stateless dismissal (per-session) is an impl detail.
+
+**`{component.site-header}`** — the landing header (replaces the bare tool `{component.header}` on the landing; the tool's `{component.header}` typographic treatment survives as the hero, below)
+- Background `{colors.surface}` · Bottom border 1px `{colors.border}` (hairline; no shadow) · Sticky top optional · Inner row constrained to the landing column (1040px), padding `{spacing.md}` 0.
+- Layout (3 zones, space-between): **left** wordmark "auto-ABNT" Display face weight 600 `{typography.h3}` `{colors.ink}` (links to top); **center** `{component.nav}`; **right** a single `{component.button-primary}`-styled CTA "Gerar agora" that scrolls to `{component.tool-section}` (the one black pill in the header — discipline holds; it is the same action as the hero CTA, so they share the single-primary budget).
+- Responsive: below `sm` the center `{component.nav}` collapses (links move into a `{component.button-ghost}` menu toggle or simply hide, keeping wordmark + CTA); the CTA stays.
+
+**`{component.nav}`** — the center nav link group
+- Horizontal row, gap `{spacing.lg}` · Each link `{component.nav-link}`.
+
+**`{component.nav-link}`** — a single nav item ("Como funciona", "Preço")
+- `{typography.body-sm}` weight 500 `{colors.text-secondary}` · Hover `{colors.text-primary}` (surface-shift register: text color only, 150ms, no motion) · Radius `{rounded.full}` hit area, padding `{spacing.sm}` `{spacing.md}` · Focus `{colors.focus}` ring · In-page anchor scroll to the matching section.
+
+**`{component.section}`** — the top-level landing section primitive (rhythm + container)
+- Vertical padding `{spacing.4xl}` top and bottom (the landing rhythm token); content centered in the landing column (1040px, §4) with `{spacing.lg}` side gutters.
+- Background `{colors.surface}` by default; a section MAY alternate to `{colors.surface-raised}` to separate bands (the Apply4You alternating-band rhythm, in our greys — never a colored band). No borders between sections; the band background change + `{spacing.4xl}` rhythm does the separation (no horizontal rules — §8 Do #7).
+- Optional `{component.section-heading}` at top.
+- On `sm`: vertical padding compresses to `{spacing.2xl}` (§9).
+
+**`{component.section-heading}`** — the heading block atop a section
+- Optional eyebrow: `{typography.caption}` weight 500 uppercase `{colors.text-tertiary}` (the only uppercase, ≤12px — §8 Don't #7).
+- Title `{typography.h2}` `{colors.text-primary}`, centered (or left for the stat/feature bands per layout).
+- Optional subtitle `{typography.body-lg}` `{colors.text-secondary}`, max-width 60ch.
+- Gap heading→content `{spacing.2xl}`.
+
+**`{component.hero}`** — the opening section (centered, Apply4You hero positioning, OUR colors)
+- A `{component.section}` (first band, `{colors.surface}`), content centered, max-width ~720px.
+- **Two-line title**, Display face: line 1 `{typography.display}` `{colors.text-primary}`; **line 2 = the "accent" line** but green is forbidden for large text (§8 Don't #3) — the accent is rendered in `{colors.text-secondary}` (a calm tonal step-down, the *only* permitted "accent" treatment at display size), NOT `{colors.signal}`. Example: line 1 "Seu trabalho em ABNT," / line 2 "pronto para entregar." in `{colors.text-secondary}`.
+- Subtitle `{typography.body-lg}` `{colors.text-secondary}`, max-width 52ch (matches the tool subline) — calm, plain pt-BR: "Suba o .docx, preencha a capa, baixe o PDF formatado nas normas. Sem Overleaf, sem instalar nada."
+- CTA row: ONE primary `{component.button-primary}` "Gerar meu PDF" that scrolls to `{component.tool-section}`. Apply4You's second (outline) hero button maps to ONE `{component.button-secondary}` "Como funciona" (anchor to the features section) — optional; if kept it is the neutral pill, never a second black pill. Gap `{spacing.md}`, stacks 1-up below `sm`.
+- Below the CTA, the trust line `{component.norms-line}` (replaces Apply4You's logo strip).
+- No hero image (system uses no photography — §6); the visual payoff is the dark prompt panel further down, not a hero graphic.
+
+**`{component.norms-line}`** — the small reassurance line replacing Apply4You's "confiam em nós" logo strip
+- Centered, `{spacing.lg}` below the hero CTA · `{typography.body-sm}` `{colors.text-tertiary}` lead-in "Segue as normas:" then the norm numbers in the Mono stack `{typography.code}`-sized `{colors.text-secondary}` — "NBR 14724 · 6023 · 10520" (machine-ish identifiers → mono, per §3). Honest reassurance, no fake company logos.
+
+**`{component.tool-section}`** — the centerpiece: the EXISTING tool, framed (Apply4You's "upload section" slot)
+- A `{component.section}` with `id` anchor (e.g. `#ferramenta`) so header/hero CTAs scroll here. Background MAY be `{colors.surface-raised}` to read as the focal "card band" (the Apply4You dropzone-card moment) — but the tool's own cards stay `{colors.surface}` so they lift off the raised band via existing Level-1 hairlines (no shadow).
+- `{component.section-heading}`: eyebrow "A ferramenta", title `{typography.h2}` "Gere seu documento agora", short subtitle.
+- **Houses the existing markup UNCHANGED**: the `<form id="form">` (with `{component.fieldset}` blocks, `{component.text-input}`, `{component.file-drop}`, `{component.button-primary}` "Gerar arquivo ABNT", `{component.status-message}`) and the `<section id="resultado">` (with `{component.prompt-panel}` → `{component.pdf-preview}`, `{component.paywall}` / `{component.paywall-canceled-note}`, `{component.download-bar}`). df-frontend does NOT redesign tool internals — it only places this block inside the section and constrains it to the 768px tool column (centered within the wider 1040px band).
+- The dark `{component.prompt-panel}` remains the page's single Level-2 inversion and the emotional payoff — landing bands above/below it are all light, so the inversion still lands as the climax of the flow.
+
+**`{component.feature-card}`** — a "Como funciona" / value card (Apply4You's 3 feature cards)
+- Background `{colors.surface}` · Border 1px `{colors.border}` · Radius `{rounded.card}` (16px) · Padding `{spacing.xl}` · No shadow.
+- Optional leading icon: monochrome line glyph, `{colors.text-secondary}`, ~24px (decorative-but-neutral; no color). Icon is optional — copy carries the card.
+- Title `{typography.h3}` `{colors.text-primary}`, margin-bottom `{spacing.sm}`.
+- Body `{typography.body-md}` `{colors.text-secondary}`.
+- Laid out 3-up in a grid (gap `{spacing.lg}`) inside a `{component.section}`; collapses 3→1 below `sm` (mirrors the cover-grid collapse, §9). Example trio: "Sem Overleaf" / "PDF pronto na hora" / "IA treinada nas normas ABNT".
+
+**`{component.feature-card-hover}`** — background `{colors.surface-raised}`, 150ms ease, no motion/scale/shadow (universal hover rule, §7). Only if the whole card is a link/anchor; static cards need no hover.
+
+**`{component.price-card}`** — the SINGLE clear price callout (Apply4You's 3 pricing cards → one honest card; we have ONE one-off price)
+- A single centered card (NOT three tiers — no fake tiers): Background `{colors.surface}` · Border 1px `{colors.border}` · Radius `{rounded.card}` · Padding `{spacing.2xl}` · max-width ~420px, centered in the pricing `{component.section}`. No shadow.
+- Contents top→bottom: a `{component.badge}` "Pagamento único" (`{colors.text-secondary}` on `{colors.surface-raised}`); the **price** — Display face `{typography.display}` `{colors.text-primary}` (big but `{colors.ink}`/text-primary, never green — §8 Don't #3); a `{typography.body-sm}` `{colors.text-tertiary}` qualifier "uma vez · sem assinatura"; a short `{typography.body-md}` `{colors.text-secondary}` inclusion line ("PDF formatado + arquivo .tex"); then ONE `{component.button-primary}` "Gerar e baixar" scrolling to `{component.tool-section}` (it is the same single primary action; checkout itself happens inside the tool via `{component.pay-button}` — the pricing CTA only routes the user to the tool, it does NOT start Stripe).
+- **PRICE IS DATA, NOT COPY** (same rule as `{component.paywall}`): the displayed price comes from the backend at runtime via `GET /config` → `pricing.formatted` (BRL string already formatted server-side; see `src/api.js#getConfig`). df-frontend MUST fetch and interpolate it — never hardcode "R$ 9,90" in the markup. Until `/config` resolves, render a neutral skeleton/placeholder (e.g. the existing "…" pattern), never a guessed number.
+- Apply4You's interval toggle (monthly/yearly) is **dropped**: there is no interval — one-off charge. Do not build a toggle.
+
+**`{component.cta-band}`** — the "Pronto para começar?" closing CTA (Apply4You's pre-footer CTA)
+- A `{component.section}`, background MAY be `{colors.surface-raised}` (a calm band, never a colored block — Apply4You uses an orange block here; we explicitly do NOT).
+- Centered heading `{typography.h2}` `{colors.text-primary}` "Pronto para entregar no prazo?" + optional `{typography.body-lg}` `{colors.text-secondary}` line.
+- CTA row: ONE `{component.button-primary}` "Gerar meu PDF" (scrolls to tool) + optional ONE `{component.button-secondary}` "Ver o preço" (scrolls to pricing). Same single-primary discipline; never two black pills.
+
+**`{component.testimonials}`** — OPTIONAL, only if honest (slice #8 ships it OFF by default)
+- Apply4You shows 4 testimonial cards. We have no real testimonials → **do not ship fabricated ones** (§8/copy honesty rule). This entry exists so a *future* real-quote pass has a token home: if/when real quotes exist, reuse `{component.feature-card}` geometry (surface, hairline, 16px radius, `{spacing.xl}` padding) with body `{typography.body-md}` `{colors.text-secondary}` + an attribution line `{typography.body-sm}` `{colors.text-tertiary}`. No avatars/photos (§6). Until then the section is omitted entirely — not stubbed with placeholders.
 
 ## 8. Do's and Don'ts
 
@@ -350,6 +438,7 @@ All interactive elements are ≥ 44×44px (`{component.button-primary}`, `{compo
 - **AI handoff**: `{component.ai-launch-group}` stacks vertically below `sm`; both buttons go full-width.
 - **Prompt panel**: `{component.prompt-panel}` keeps its `{rounded.card}` and internal scroll; code never drops below 12px — scroll, don't shrink.
 - **Spacing**: card padding compresses from `{spacing.xl}` to `{spacing.lg}` below `sm`.
+- **Landing (slice #8)**: `{component.section}` vertical padding compresses `{spacing.4xl}`→`{spacing.2xl}` below `sm`; `{component.nav}` collapses (links hide or move behind a `{component.button-ghost}` toggle, wordmark + header CTA persist); `{component.feature-card}` grid 3-up→1-up below `sm`; `{component.hero}` and `{component.cta-band}` CTA rows stack 1-up (full-width) below `sm`; `{component.footer}` columns stack 1-up; the landing column (1040px) shrinks to 100% width minus `{spacing.lg}` gutters, while `{component.tool-section}`'s inner tool stays the 768px reading column.
 
 ### Image Behavior
 
@@ -374,4 +463,5 @@ No raster images. The prompt panel's mono text scales fluidly inside its contain
 - ~~**Pay-before-download UX not specified**~~ — RESOLVED (slice #9): paywall = `{component.paywall}` + `{component.pay-button}` (reuses `{component.button-primary}`) in the unpaid `pronto` slot; Stripe hosted-redirect return states (`pago`/`cancelado`) map to `{component.status-message}` `-ok`/`-info` (+ `{component.paywall-canceled-note}`); `{component.download-bar}` is gated on server-verified payment.
 - **Empty/error states beyond conversion failure** (e.g. a `.docx` that yields an empty body) are not yet specified; until a dedicated pass, fall back to `{component.status-message}` `-erro`.
 - **Logo/wordmark** does not exist yet; the header specifies typographic treatment only.
+- ~~**Enterprise landing layout not specified**~~ — RESOLVED (slice #8): landing = `{component.notification-bar}` + `{component.site-header}` (`{component.nav}` / `{component.nav-link}`) + `{component.hero}` (two-line title, accent line = `{colors.text-secondary}`, NOT green) + `{component.norms-line}` + `{component.tool-section}` (houses the existing form + result UNCHANGED — the dark prompt panel stays the single inversion) + `{component.feature-card}` ×3 + `{component.price-card}` (single honest one-off, price from `GET /config`) + `{component.cta-band}` + extended `{component.footer}`. Section rhythm = `{component.section}` at `{spacing.4xl}`; testimonials (`{component.testimonials}`) deliberately OFF (no fake quotes). Apply4You positioning only — none of its orange/colors; signature preserved (one black pill, green = signal, two radii, no shadows, hairlines).
 - **`{component.file-drop}` drag-and-drop** is specified visually (`-dragover`); the current build uses a plain file input — the drag affordance is a forward-looking spec for the implementation pass.
