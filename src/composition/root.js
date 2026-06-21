@@ -26,6 +26,8 @@ import { createClaudeFormatter } from '../infrastructure/adapters/ClaudeFormatte
 import { createOpenAiFormatter } from '../infrastructure/adapters/OpenAiFormatter.js';
 import { createTexLiveCompiler, createLatexmkRunner } from '../infrastructure/adapters/TexLiveCompiler.js';
 import { createStripeGateway } from '../infrastructure/adapters/StripeGateway.js';
+import { createMemoryJobStore } from '../infrastructure/adapters/MemoryJobStore.js';
+import { createFileJobStore } from '../infrastructure/adapters/FileJobStore.js';
 
 /**
  * @typedef {Object} App
@@ -71,6 +73,11 @@ import { createStripeGateway } from '../infrastructure/adapters/StripeGateway.js
  *   PAYMENT_PROVIDER=fake | (no key present) → FakePaymentGateway (keyless sandbox/local
  *     default; NO network). FAKE_AUTOPAY=1 marks charges paid immediately.
  * Keys are read here only and injected into the adapter; never hardcoded, never logged.
+ *
+ * JobStore selection (env, see selectJobStore):
+ *   JOB_STORE=file + JOB_STORE_DIR=<dir> → durable FileJobStore (survives a restart
+ *     between pay and download; atomic tmp+rename writes; pdf bytes round-trip exact).
+ *   JOB_STORE=memory | (unset) → MemoryJobStore (sandbox/local default; not durable).
  */
 export function buildApp(env = (typeof process !== 'undefined' ? process.env : {})) {
   // Price config lives here, not in callers. e.g. PRICE_BRL=990 (centavos).
@@ -84,11 +91,11 @@ export function buildApp(env = (typeof process !== 'undefined' ? process.env : {
     formatted: formatBrl(amount),
   };
 
-  // In-memory job store keyed by job.id. Holds the preview pdf + ref + linked
+  // Job store behind the JobStore port. Holds the preview pdf + ref + linked
   // chargeId so /checkout and /download can resolve a job after the Stripe
-  // redirect. NOTE: not durable — a later slice persists this (see ARCHITECTURE).
-  /** @type {Map<string, import('../domain/types.js').FormattingJob>} */
-  const jobStore = new Map();
+  // redirect. Memory by default (sandbox/tests); JOB_STORE=file persists to disk
+  // so a restart between pay and download survives (see selectJobStore).
+  const jobStore = selectJobStore(env);
 
   // LlmFormatter chosen by env; fake by default so the sandbox/local gate stays
   // green WITHOUT keys (no real vendor call). Other adapters stay fake for now.
@@ -119,7 +126,7 @@ export function buildApp(env = (typeof process !== 'undefined' ? process.env : {
    */
   async function createJob(request) {
     const job = await formatThesis.execute(request);
-    jobStore.set(job.id, job);
+    jobStore.put(job);
     return job;
   }
 
@@ -147,7 +154,9 @@ export function buildApp(env = (typeof process !== 'undefined' ? process.env : {
       currency: pricing.currency,
       ref: `${jobId}:checkout`,
     });
-    job.chargeId = charge.id;
+    // Link the chargeId onto the job THROUGH the port so it persists (durable store
+    // survives a restart between pay and download).
+    jobStore.update(jobId, { chargeId: charge.id });
     return {
       chargeId: charge.id,
       checkoutUrl: charge.url ?? null,
@@ -321,4 +330,32 @@ function selectPaymentGateway(env, pricing) {
   return new FakePaymentGateway({
     autoPay: env.FAKE_AUTOPAY === '1' || env.FAKE_AUTOPAY === 'true',
   });
+}
+
+/**
+ * Pick the JobStore adapter from env. The ONLY place that selects job persistence.
+ *
+ * Default is MEMORY so the sandbox/local gate stays green with no disk state and a
+ * clean store per process. JOB_STORE=file + JOB_STORE_DIR=<dir> selects the durable
+ * FileJobStore, so a job created before payment survives a server restart and the
+ * post-payment GET /download still resolves it (atomic tmp+rename writes; pdf bytes
+ * round-trip byte-exact). Mirrors selectLlmFormatter/selectLatexCompiler/selectPaymentGateway.
+ *
+ * Env:
+ *   JOB_STORE=file + JOB_STORE_DIR=<dir> → FileJobStore (durable, persists to <dir>)
+ *   JOB_STORE=memory | (unset)           → MemoryJobStore (sandbox/local default)
+ *
+ * NOTE (out of scope): persisted jobs (incl. the PDF bytes) have NO TTL/cleanup yet;
+ * a later slice must expire old job files and treat the on-disk pdf as sensitive.
+ *
+ * @param {Object} env
+ * @returns {import('../infrastructure/adapters/MemoryJobStore.js')['createMemoryJobStore'] extends () => infer S ? S : any}
+ */
+function selectJobStore(env) {
+  const kind = normalizeProvider(env.JOB_STORE);
+  if (kind === 'file' && env.JOB_STORE_DIR) {
+    return createFileJobStore({ dir: env.JOB_STORE_DIR });
+  }
+  // Unset / JOB_STORE=memory / file without a dir → memory (no disk state).
+  return createMemoryJobStore();
 }
