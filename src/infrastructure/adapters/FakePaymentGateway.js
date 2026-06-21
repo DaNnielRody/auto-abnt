@@ -70,12 +70,22 @@ export class FakePaymentGateway {
   /**
    * Test/dev hook simulating a webhook/poll that captures the payment.
    * Flips the stored charge to 'paid' so a later verify() releases the download.
+   *
+   * Upserts: if the charge is unknown to THIS gateway instance it is recorded as
+   * paid. This is the durable-JobStore "restart between pay and download" case — a
+   * fresh process rebuilds a fresh (non-durable) gateway but must still be able to
+   * confirm a chargeId that survived on the persisted job. Mirrors a real gateway,
+   * where verify() would hit the vendor and find the charge already paid.
    * @param {string} id
    */
   markPaid(id) {
+    if (typeof id !== 'string' || id.length === 0) {
+      throw new Error('FakePaymentGateway: markPaid requires a charge id');
+    }
     const charge = this._charges.get(id);
     if (!charge) {
-      throw new Error(`FakePaymentGateway: cannot mark unknown charge ${id} paid`);
+      this._charges.set(id, { id, ref: id, amount: 0, currency: 'brl', status: 'paid' });
+      return;
     }
     charge.status = 'paid';
   }
