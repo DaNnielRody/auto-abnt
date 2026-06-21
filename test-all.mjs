@@ -11,6 +11,7 @@ const files = [
   'tests/latex-compiler.test.mjs',
   'tests/stripe-gateway.test.mjs',
   'tests/payment-flow.test.mjs',
+  'tests/jobstore.test.mjs',
 ];
 
 let failed = 0;

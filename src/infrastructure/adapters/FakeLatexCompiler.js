@@ -13,10 +13,10 @@
  * @see ../../application/ports/LatexCompiler.js
  */
 
-// Minimal, deterministic valid-ish PDF stub: a real "%PDF-1.4" header + EOF marker.
-const PDF_STUB = new TextEncoder().encode(
-  '%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n',
-);
+// Minimal, deterministic valid-ish PDF stub: a real "%PDF" header + EOF marker.
+// Kept byte-identical to the jobstore contract fixture (PDF_BYTES) so the durable
+// store's pay→restart→download path can prove the preview pdf round-trips byte-exact.
+const PDF_STUB = new TextEncoder().encode('%PDF-1.7\n1 0 obj<<>>endobj\n%%EOF\n');
 
 export class FakeLatexCompiler {
   /**
