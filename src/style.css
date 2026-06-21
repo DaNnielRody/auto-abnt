@@ -250,9 +250,8 @@ button.primary:disabled {
   cursor: not-allowed;
 }
 
-/* component.button-secondary + component.ai-launch-button */
-.btn-secondary,
-.ai-launch {
+/* component.button-secondary */
+.btn-secondary {
   height: 44px;
   padding: 0 var(--spacing-lg);
   font-size: 16px;
@@ -266,27 +265,9 @@ button.primary:disabled {
   gap: var(--spacing-sm);
 }
 
-.btn-secondary:hover,
-.ai-launch:hover {
+.btn-secondary:hover {
   background: var(--colors-surface-raised);
   color: var(--colors-text-primary);
-}
-
-.ai-launch svg {
-  width: 16px;
-  height: 16px;
-  color: var(--colors-text-secondary);
-}
-
-/* ===== component.ai-launch-group ===== */
-.ai-launch-group {
-  display: flex;
-  gap: var(--spacing-md);
-  margin: var(--spacing-md) 0;
-}
-
-.ai-launch-group .ai-launch {
-  flex: 1;
 }
 
 /* ===== component.status-message ===== */
@@ -336,93 +317,73 @@ button.primary:disabled {
   letter-spacing: -0.01em;
 }
 
-/* ===== component.step-item ===== */
-.resultado ol {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  counter-reset: step;
-}
-
-.resultado li {
-  position: relative;
-  counter-increment: step;
-  padding-left: calc(28px + var(--spacing-md));
-  margin-bottom: var(--spacing-lg);
-  font-size: 16px;
-  color: var(--colors-text-secondary);
-}
-
-.resultado li::before {
-  content: counter(step);
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--colors-text-primary);
-  background: var(--colors-surface-raised);
-  border-radius: var(--rounded-full);
-}
-
-.resultado li strong {
-  color: var(--colors-text-primary);
-}
-
-/* ===== component.prompt-panel (signature — the one inversion) ===== */
+/* ===== component.prompt-panel (signature — the one inversion) =====
+   Repurposed as the dark FRAME for component.pdf-preview. */
 .prompt-panel {
   position: relative;
-  margin: var(--spacing-md) 0;
+  margin: var(--spacing-md) 0 0;
   background: var(--colors-panel);
   border: 1px solid var(--colors-border-dark);
-  border-top: 2px solid var(--colors-signal-bright); /* prompt-panel-ready */
+  border-top: 1px solid var(--colors-border-dark);
   border-radius: var(--rounded-card);
-  padding: var(--spacing-lg);
+  padding: var(--spacing-md);
 }
 
-.prompt-panel .copy-button {
-  position: absolute;
-  top: var(--spacing-sm);
-  right: var(--spacing-sm);
-  color: var(--colors-text-on-dark-muted);
-  background: transparent;
+/* component.prompt-panel-ready — 2px signal-bright top edge fires on PDF load */
+.prompt-panel.ready {
+  border-top: 2px solid var(--colors-signal-bright);
 }
 
-.prompt-panel .copy-button:hover {
-  color: var(--colors-text-on-dark);
+/* preview header row: left badge "Pré-visualização" */
+.preview-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+}
+
+/* component.badge on the dark panel */
+.preview-header .badge {
+  font-size: 12px; /* typography.caption */
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--rounded-full);
   background: var(--colors-panel-raised);
+  color: var(--colors-text-on-dark-muted);
 }
 
-.prompt-panel .copy-button.copied {
-  color: var(--colors-signal-bright);
-}
-
-#prompt {
-  width: 100%;
-  max-height: 320px;
-  resize: vertical;
-  border: none;
-  background: transparent;
-  padding: 0;
+/* empty/pre-generate placeholder line */
+.preview-placeholder {
+  margin: 0;
   font-family: var(--font-mono);
   font-size: 14px; /* typography.code */
   line-height: 1.6;
-  color: var(--colors-text-on-dark);
-}
-
-#prompt:focus {
-  outline: none;
-  box-shadow: none;
-}
-
-#prompt::placeholder {
   color: var(--colors-text-on-dark-muted);
+}
+
+/* ===== component.pdf-preview — native <iframe> of a PDF blob URL =====
+   The white doc rectangle is the only white surface allowed on dark, because
+   it IS the document. Scroll inside, never scale below legibility. */
+.pdf-preview {
+  width: 100%;
+  height: 480px; /* A4-ish; DESIGN allows px for preview height */
+  background: var(--colors-surface);
+  border: none;
+  border-radius: var(--rounded-card);
+  display: block;
+}
+
+/* ===== component.download-bar — shown only in 'pronto' ===== */
+.download-bar {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+}
+
+.download-bar .primary,
+.download-bar .btn-secondary {
+  flex: 1;
+  width: auto;
 }
 
 /* ===== component.footer ===== */
@@ -453,7 +414,7 @@ a {
   .grid {
     grid-template-columns: 1fr;
   }
-  .ai-launch-group {
+  .download-bar {
     flex-direction: column;
   }
   fieldset,
