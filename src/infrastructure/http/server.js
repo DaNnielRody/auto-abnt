@@ -7,11 +7,15 @@
  * the response. Adopting a framework later changes ONLY this file.
  *
  * Routes:
- *   POST /format        { skeleton, metadata, ref } -> job (preview pdf as base64)
- *   POST /checkout      { ref }                      -> { chargeId, status, clientSecret }
+ *   POST /format        { skeleton, metadata, ref } -> job (preview pdf + pricing)
+ *   POST /checkout      { job }                      -> { chargeId, checkoutUrl }
  *   GET  /download/:id  ?chargeId=...                -> pdf bytes ONLY if verify === 'paid'
+ *   GET  /config                                     -> server pricing (for the UI)
  *
- * Jobs are held in-memory keyed by ref for Slice 1 (a later slice persists them).
+ * Jobs are RETAINED by the app surface (composition root), keyed by job.id, so
+ * /checkout and /download resolve a job after the Stripe redirect. The price is
+ * server-authoritative (app.pricing) — never trusted from the client. The
+ * download gate fails closed: 402 when unpaid, 403/404 on mismatch/unknown.
  *
  * @see ../../ARCHITECTURE.md  (ADR-0001)
  */
@@ -59,59 +63,66 @@ function sendJson(res, status, body) {
  * @returns {(req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse) => Promise<void>}
  */
 export function createRequestHandler(app = buildApp()) {
-  /** @type {Map<string, import('../../domain/types.js').FormattingJob>} */
-  const jobs = new Map();
-
   return async function handler(req, res) {
     try {
       const url = new URL(req.url, 'http://localhost');
       const { pathname } = url;
 
-      // POST /format — run the use-case, store the job, return shaped result.
+      // GET /config — expose the server-authoritative price for the UI.
+      if (req.method === 'GET' && pathname === '/config') {
+        return sendJson(res, 200, { pricing: app.pricing });
+      }
+
+      // POST /format — run the use-case, RETAIN the job (app surface), return result.
+      // Includes app.pricing so the UI shows the price without hardcoding it.
       if (req.method === 'POST' && pathname === '/format') {
         const { skeleton, metadata, ref } = await readJson(req);
         if (!skeleton || !ref) {
           return sendJson(res, 400, { error: 'skeleton and ref are required' });
         }
-        const job = await app.formatThesis.execute({ skeleton, metadata, ref });
-        jobs.set(job.id, job);
+        const job = await app.createJob({ skeleton, metadata, ref });
         return sendJson(res, 200, {
           id: job.id,
           warnings: job.warnings,
-          chargeId: job.chargeId,
           status: job.status,
           released: job.released,
+          // Server-authoritative price so the UI never hardcodes "R$ 9,90".
+          pricing: app.pricing,
           // Preview PDF as base64 so the client can render it inline.
           previewPdf: job.pdf ? Buffer.from(job.pdf).toString('base64') : null,
         });
       }
 
-      // POST /checkout — create (or reuse) a charge for a known job ref.
-      // SECURITY: the price is server-authoritative (injected pricing/config).
-      // We deliberately do NOT forward any client-supplied amount/currency — the
-      // gateway bills the configured price regardless. /checkout needs only the ref.
+      // POST /checkout — start checkout for a retained job (by id). NO amount from
+      // the client: the gateway bills app.pricing. The created chargeId is LINKED
+      // to the job server-side so /download can verify it after the redirect.
       if (req.method === 'POST' && pathname === '/checkout') {
-        const { ref } = await readJson(req);
-        if (!ref) return sendJson(res, 400, { error: 'ref is required' });
-        const charge = await app.paymentGateway.createCharge({ ref });
+        const { job: jobId } = await readJson(req);
+        if (!jobId) return sendJson(res, 400, { error: 'job is required' });
+        if (!app.getJob(jobId)) return sendJson(res, 404, { error: 'job not found' });
+        const out = await app.startCheckout(jobId);
         return sendJson(res, 200, {
-          chargeId: charge.id,
-          status: charge.status,
-          // Checkout URL (Stripe) or clientSecret (other gateways) — whichever the adapter returns.
-          checkoutUrl: charge.url ?? null,
-          clientSecret: charge.clientSecret ?? null,
+          chargeId: out.chargeId,
+          checkoutUrl: out.checkoutUrl,
         });
       }
 
       // GET /download/:id?chargeId=... — release PDF ONLY when verify === 'paid'.
+      // Never trust a client paid flag. Fail closed:
+      //   released      -> 200 application/pdf (bytes)
+      //   not paid      -> 402 payment required
+      //   mismatch/unk  -> 403 (no pdf)
       if (req.method === 'GET' && pathname.startsWith('/download/')) {
         const id = decodeURIComponent(pathname.slice('/download/'.length));
-        const job = jobs.get(id);
-        if (!job) return sendJson(res, 404, { error: 'job not found' });
+        if (!app.getJob(id)) return sendJson(res, 404, { error: 'job not found' });
 
-        const chargeId = url.searchParams.get('chargeId') ?? job.chargeId;
-        const result = await app.releaseDownload({ chargeId, pdf: job.pdf });
+        const chargeId = url.searchParams.get('chargeId') ?? '';
+        const result = await app.releaseDownload(id, chargeId);
         if (!result.released) {
+          // Distinguish unpaid (402) from mismatch/unknown chargeId (403).
+          if (result.status === 'rejected') {
+            return sendJson(res, 403, { error: 'forbidden', status: result.status });
+          }
           return sendJson(res, 402, { error: 'payment required', status: result.status });
         }
         res.writeHead(200, {
