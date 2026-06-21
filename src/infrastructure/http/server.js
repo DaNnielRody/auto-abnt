@@ -68,6 +68,12 @@ export function createRequestHandler(app = buildApp()) {
       const url = new URL(req.url, 'http://localhost');
       const { pathname } = url;
 
+      // GET /health — liveness probe for the container / integration poll.
+      // Returns 200 with no business data; cheap, never touches a vendor.
+      if (req.method === 'GET' && pathname === '/health') {
+        return sendJson(res, 200, { status: 'ok' });
+      }
+
       // GET /config — expose the server-authoritative price for the UI.
       if (req.method === 'GET' && pathname === '/config') {
         return sendJson(res, 200, { pricing: app.pricing });
